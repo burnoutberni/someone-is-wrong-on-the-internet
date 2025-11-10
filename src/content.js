@@ -119,33 +119,43 @@ function gatherCandidateComments() {
     }
   }
 
-  // also scan for common comment container elements by heuristics
-  for (const el of Array.from(document.querySelectorAll('div, article, li, p'))) {
-    if (candidates.has(el)) continue;
-    // small heuristic: elements containing short text and used multiple times
-    const text = (el.innerText || el.textContent || '').trim();
-    if (text.length < 5 || text.length > 2000) continue;
-    // skip if this element contains interactive controls (likely not a comment)
-    if (el.querySelector('button, input, textarea, a')) continue;
-    // use role or aria attributes
-    const role = el.getAttribute && el.getAttribute('role');
-    if (role && /comment/i.test(role)) {
-      candidates.set(el, text);
-    }
-  }
-
-  // lastly, try to find elements that are repeated multiple times with similar class names
-  const classCounts = {};
-  for (const el of Array.from(document.querySelectorAll('div[class], li[class], article[class]'))) {
-    const cls = el.className.split(' ')[0];
-    if (!cls) continue;
-    classCounts[cls] = (classCounts[cls] || 0) + 1;
-  }
-  for (const [cls, cnt] of Object.entries(classCounts)) {
-    if (cnt < 3) continue;
-    for (const el of Array.from(document.querySelectorAll(`.${cls}`))) {
+  // Only scan for comment containers if we have very few candidates from selectors
+  if (candidates.size < 5) {
+    // scan for common comment container elements by heuristics (more conservative)
+    for (const el of Array.from(document.querySelectorAll('div[role="comment"], article[role="comment"]'))) {
+      if (candidates.has(el)) continue;
       const text = (el.innerText || el.textContent || '').trim();
-      if (text.length > 0 && text.length < 1000) candidates.set(el, text);
+      if (text.length >= 10 && text.length <= 1000) {
+        candidates.set(el, text);
+      }
+    }
+
+    // lastly, try to find elements that are repeated multiple times with similar class names
+    // Only if we have comment-like class names
+    const classCounts = {};
+    for (const el of Array.from(document.querySelectorAll('div[class*="comment"], li[class*="comment"], article[class*="comment"], div[class*="post"], li[class*="post"]'))) {
+      const cls = el.className.split(' ').find(c => /comment|post|reply/i.test(c));
+      if (!cls) continue;
+      classCounts[cls] = (classCounts[cls] || 0) + 1;
+    }
+    
+    for (const [cls, cnt] of Object.entries(classCounts)) {
+      // Require at least 3 instances to be confident it's a comment pattern
+      if (cnt < 3 || cnt > 100) continue; // also cap at 100 to avoid nav items etc
+      
+      for (const el of Array.from(document.querySelectorAll(`.${CSS.escape(cls)}`))) {
+        if (candidates.has(el)) continue;
+        const text = (el.innerText || el.textContent || '').trim();
+        // More conservative: require reasonable comment length
+        if (text.length >= 20 && text.length <= 800) {
+          // Skip if contains too many links (likely nav/menu)
+          const linkCount = el.querySelectorAll('a').length;
+          const wordCount = text.split(/\s+/).length;
+          if (linkCount > 0 && linkCount / wordCount > 0.3) continue;
+          
+          candidates.set(el, text);
+        }
+      }
     }
   }
 
