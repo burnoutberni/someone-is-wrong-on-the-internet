@@ -1,0 +1,60 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Somebody is wrong on the internet!</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="popup">
+    <h3>Somebody is wrong on the internet!</h3>
+    <div class="row">
+      <label for="tone">Tone:</label>
+      <select id="tone">
+        <option value="funny">Funny</option>
+        <option value="sarcastic">Sarcastic</option>
+        <option value="mild">Mild</option>
+      </select>
+    </div>
+
+    <div class="row">
+      <label for="apikey">AI API key (optional for Ollama)</label>
+      <div style="display:flex;gap:4px;align-items:center;">
+        <input id="apikey" type="password" placeholder="Paste API key" style="flex:1;" />
+        <button id="toggleKey" style="padding:6px 10px;cursor:pointer;">👁️</button>
+        <button id="saveKey">Save</button>
+      </div>
+    </div>
+
+    <div class="row">
+      <label for="apibase">AI API base URL</label>
+      <input id="apibase" type="text" placeholder="https://api.openai.com or http://localhost:11434" />
+      <button id="saveBase">Save</button>
+    </div>
+
+    <div class="row">
+      <label for="model">Model (optional)</label>
+      <input id="model" type="text" placeholder="gpt-3.5-turbo or llama3.2" />
+      <button id="saveModel">Save</button>
+    </div>
+
+    <div class="row">
+      <button id="scan">Scan page for comments</button>
+    </div>
+    
+    <small class="note" style="display:block;margin-top:8px;color:#666;">For Ollama: set base to <code>http://localhost:11434</code> and leave API key empty.</small>
+
+    <div class="row">
+      <div id="status" class="status"></div>
+    </div>
+
+    <div class="row">
+      <div id="result"></div>
+    </div>
+
+    <small class="note">This is a proof-of-concept. No network AI call is made by default.</small>
+  </div>
+  <script src="popup.js"></script>
+</body>
+</html>
