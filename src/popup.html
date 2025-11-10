@@ -3,57 +3,88 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Somebody is wrong on the internet!</title>
+  <title>Someone is wrong on the internet!</title>
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
   <div class="popup">
-    <h3>Somebody is wrong on the internet!</h3>
-    <div class="row">
-      <label for="tone">Tone:</label>
-      <select id="tone">
-        <option value="funny">Funny</option>
-        <option value="sarcastic">Sarcastic</option>
-        <option value="mild">Mild</option>
-      </select>
-    </div>
+    <header class="header">
+      <h1>Someone is wrong on the internet!</h1>
+    </header>
 
-    <div class="row">
-      <label for="apikey">AI API key (optional for Ollama)</label>
-      <div style="display:flex;gap:4px;align-items:center;">
-        <input id="apikey" type="password" placeholder="Paste API key" style="flex:1;" />
-        <button id="toggleKey" style="padding:6px 10px;cursor:pointer;">👁️</button>
-        <button id="saveKey">Save</button>
+    <!-- Enable/Disable Controls -->
+    <section class="section">
+      <div class="toggle-group">
+        <div class="toggle-item">
+          <div class="toggle-label">
+            <span class="toggle-title">Enable extension</span>
+            <span class="toggle-desc">Globally enable/disable</span>
+          </div>
+          <label class="toggle-switch">
+            <input type="checkbox" id="globalEnable" checked>
+            <span class="slider"></span>
+          </label>
+        </div>
+        <div class="toggle-item">
+          <div class="toggle-label">
+            <span class="toggle-title">Enable for this site</span>
+            <span class="toggle-desc" id="currentSite">Loading...</span>
+          </div>
+          <label class="toggle-switch">
+            <input type="checkbox" id="siteEnable" checked>
+            <span class="slider"></span>
+          </label>
+        </div>
       </div>
-    </div>
+    </section>
 
-    <div class="row">
-      <label for="apibase">AI API base URL</label>
-      <input id="apibase" type="text" placeholder="https://api.openai.com or http://localhost:11434" />
-      <button id="saveBase">Save</button>
-    </div>
+    <!-- Tone Selection -->
+    <section class="section">
+      <label class="section-label">Reply Tone</label>
+      <select id="tone" class="select-field">
+        <option value="funny">🎭 Funny</option>
+        <option value="sarcastic">😏 Sarcastic</option>
+        <option value="mild">😌 Mild</option>
+      </select>
+    </section>
 
-    <div class="row">
-      <label for="model">Model (optional)</label>
-      <input id="model" type="text" placeholder="gpt-3.5-turbo or llama3.2" />
-      <button id="saveModel">Save</button>
-    </div>
+  <!-- API Configuration -->
+  <section class="section collapsible collapsed no-init-anim">
+      <button class="section-header" id="toggleConfig">
+        <span>⚙️ API Configuration</span>
+        <span class="chevron">▼</span>
+      </button>
+      <div class="section-content" id="configContent">
+        <div class="field-group">
+          <label class="field-label">API Key</label>
+          <div class="input-group">
+            <input id="apikey" type="password" class="input-field" placeholder="sk-..." />
+            <button id="toggleKey" class="btn-icon" title="Show/Hide">👁️</button>
+          </div>
+          <div class="field-hint">Optional for Ollama/Open WebUI</div>
+        </div>
 
-    <div class="row">
-      <button id="scan">Scan page for comments</button>
-    </div>
-    
-    <small class="note" style="display:block;margin-top:8px;color:#666;">For Ollama: set base to <code>http://localhost:11434</code> and leave API key empty.</small>
+        <div class="field-group">
+          <label class="field-label">API Base URL</label>
+          <input id="apibase" type="text" class="input-field" placeholder="https://api.openai.com" />
+          <div class="field-hint">Use <code>http://localhost:11434</code> for Ollama or <code>http://localhost:3000</code> for Open WebUI</div>
+        </div>
 
-    <div class="row">
-      <div id="status" class="status"></div>
-    </div>
+        <div class="field-group">
+          <label class="field-label">Model</label>
+          <input id="model" type="text" class="input-field" placeholder="gpt-3.5-turbo" />
+          <div class="field-hint">Leave empty for auto-detection</div>
+        </div>
+      </div>
+    </section>
 
-    <div class="row">
-      <div id="result"></div>
-    </div>
+    <!-- Actions -->
+    <section class="section">
+      <button id="scan" class="btn-primary">🔍 Scan Page for Comments</button>
+    </section>
 
-    <small class="note">This is a proof-of-concept. No network AI call is made by default.</small>
+    <!-- Status -->
+    <div id="status" class="status"></div>
   </div>
   <script src="popup.js"></script>
 </body>

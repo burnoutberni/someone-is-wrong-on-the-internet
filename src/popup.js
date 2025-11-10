@@ -1,33 +1,92 @@
 console.log('popup.js loaded');
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
   console.log('DOMContentLoaded fired');
   
   const scanBtn = document.getElementById('scan');
   const status = document.getElementById('status');
-  const result = document.getElementById('result');
   const apikey = document.getElementById('apikey');
-  const saveKey = document.getElementById('saveKey');
   const tone = document.getElementById('tone');
   const apibase = document.getElementById('apibase');
-  const saveBase = document.getElementById('saveBase');
   const model = document.getElementById('model');
-  const saveModel = document.getElementById('saveModel');
   const toggleKey = document.getElementById('toggleKey');
+  const globalEnable = document.getElementById('globalEnable');
+  const siteEnable = document.getElementById('siteEnable');
+  const currentSite = document.getElementById('currentSite');
+  const toggleConfig = document.getElementById('toggleConfig');
+  const configContent = document.getElementById('configContent');
+  const configSection = document.querySelector('.collapsible');
   
-  console.log('Elements found:', { scanBtn, status, saveKey, saveBase, saveModel, toggleKey });
+  console.log('Elements found:', {
+    toggleConfig: toggleConfig,
+    configContent: configContent,
+    configSection: configSection
+  });
+  
+  // Disable transitions initially to prevent animation on load
+  if (configSection) {
+    configSection.style.transition = 'none';
+  }
+  
+  // Get current tab hostname
+  let currentHostname = '';
+  try {
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    if (tab && tab.url) {
+      const url = new URL(tab.url);
+      currentHostname = url.hostname;
+      currentSite.textContent = currentHostname;
+    }
+  } catch (e) {
+    console.error('Failed to get current tab:', e);
+    currentSite.textContent = 'Unknown site';
+  }
 
-  // load stored API key, base, model, and tone (if any)
-  chrome.storage.local.get(['siwoti_apiKey', 'siwoti_apiBase', 'siwoti_model', 'siwoti_tone'], (data) => {
+  // Load settings
+  chrome.storage.local.get([
+    'siwoti_apiKey', 
+    'siwoti_apiBase', 
+    'siwoti_model', 
+    'siwoti_tone',
+    'siwoti_globalEnabled',
+    'siwoti_disabledSites'
+  ], (data) => {
     if (data && data.siwoti_apiKey) apikey.value = data.siwoti_apiKey;
     if (data && data.siwoti_apiBase) apibase.value = data.siwoti_apiBase;
     if (data && data.siwoti_model) model.value = data.siwoti_model;
     if (data && data.siwoti_tone) tone.value = data.siwoti_tone;
+    
+    // Load enable states
+    const globalEnabled = data.siwoti_globalEnabled !== false; // default true
+    globalEnable.checked = globalEnabled;
+    
+    const disabledSites = data.siwoti_disabledSites || [];
+    const siteEnabled = !disabledSites.includes(currentHostname);
+    siteEnable.checked = siteEnabled;
+    
+    // Check if user has API settings configured
+    const hasApiSettings = !!(data && (data.siwoti_apiKey || data.siwoti_apiBase || data.siwoti_model));
+
+    // If no API settings at all, show all fields by expanding without animation (no-init-anim prevents transitions)
+    if (!hasApiSettings) {
+      configSection.classList.remove('collapsed');
+      console.log('No API settings found. Expanding config (no animation).');
+    } else {
+      // Ensure stays collapsed by default
+      configSection.classList.add('collapsed');
+    }
+    // Keep no-init-anim class until first user interaction.
+    console.log('Initial state set. hasApiSettings:', hasApiSettings);
+    
     console.log('Loaded settings:', { 
       apiKey: data && data.siwoti_apiKey ? '***' + data.siwoti_apiKey.slice(-4) : 'none',
       apiBase: data && data.siwoti_apiBase || 'none',
       model: data && data.siwoti_model || 'none',
-      tone: data && data.siwoti_tone || 'funny'
+      tone: data && data.siwoti_tone || 'funny',
+      globalEnabled,
+      siteEnabled,
+      currentHostname,
+      hasApiSettings
     });
   });
 
@@ -42,58 +101,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // Save API key locally (no key is shipped with this project)
-  saveKey.addEventListener('click', () => {
-    console.log('Save key clicked');
-    const key = apikey.value.trim();
-    console.log('Saving key:', key ? '***' + key.slice(-4) : 'empty');
-    chrome.storage.local.set({ siwoti_apiKey: key }, () => {
-      if (chrome.runtime.lastError) {
-        console.error('Error saving key:', chrome.runtime.lastError);
-        status.textContent = 'Error saving key!';
-      } else {
-        status.textContent = key ? 'API key saved.' : 'API key cleared.';
-        console.log('Key saved successfully');
-      }
-      setTimeout(() => (status.textContent = ''), 2200);
-    });
-  });
-
-  // Save API base URL (e.g., https://api.openai.com or http://localhost:11434 for Ollama)
-  saveBase.addEventListener('click', () => {
-    console.log('Save base clicked');
-    const base = apibase.value.trim();
-    console.log('Saving base:', base || 'empty');
-    chrome.storage.local.set({ siwoti_apiBase: base }, () => {
-      if (chrome.runtime.lastError) {
-        console.error('Error saving base:', chrome.runtime.lastError);
-        status.textContent = 'Error saving base!';
-      } else {
-        status.textContent = base ? 'API base saved: ' + base : 'API base cleared (default: OpenAI)';
-        console.log('Base saved successfully');
-      }
-      setTimeout(() => (status.textContent = ''), 3000);
-    });
-  });
-
-  // Save model name (e.g., gpt-3.5-turbo, llama3.2)
-  saveModel.addEventListener('click', () => {
-    console.log('Save model clicked');
-    const mdl = model.value.trim();
-    console.log('Saving model:', mdl || 'empty');
-    chrome.storage.local.set({ siwoti_model: mdl }, () => {
-      if (chrome.runtime.lastError) {
-        console.error('Error saving model:', chrome.runtime.lastError);
-        status.textContent = 'Error saving model!';
-      } else {
-        status.textContent = mdl ? 'Model saved: ' + mdl : 'Model cleared (auto-detect)';
-        console.log('Model saved successfully');
-      }
-      setTimeout(() => (status.textContent = ''), 2200);
-    });
-  });
-
-  // Save tone on change
+  // Auto-save tone on change
   tone.addEventListener('change', () => {
     console.log('Tone changed to:', tone.value);
     const selectedTone = tone.value;
@@ -102,49 +110,140 @@ document.addEventListener('DOMContentLoaded', () => {
         console.error('Error saving tone:', chrome.runtime.lastError);
       } else {
         console.log('Tone saved successfully:', selectedTone);
-        status.textContent = 'Tone saved: ' + selectedTone;
-        setTimeout(() => (status.textContent = ''), 1500);
+        showStatus('✓ Tone saved');
       }
     });
   });
 
+  // Auto-save API fields on blur
+  apikey.addEventListener('blur', () => {
+    const key = apikey.value.trim();
+    chrome.storage.local.set({ siwoti_apiKey: key }, () => {
+      if (!chrome.runtime.lastError) {
+        showStatus(key ? '✓ API key saved' : '✓ API key cleared');
+      }
+    });
+  });
+
+  apibase.addEventListener('blur', () => {
+    const base = apibase.value.trim();
+    chrome.storage.local.set({ siwoti_apiBase: base }, () => {
+      if (!chrome.runtime.lastError) {
+        showStatus(base ? '✓ API base saved' : '✓ Using default');
+      }
+    });
+  });
+
+  model.addEventListener('blur', () => {
+    const mdl = model.value.trim();
+    chrome.storage.local.set({ siwoti_model: mdl }, () => {
+      if (!chrome.runtime.lastError) {
+        showStatus(mdl ? '✓ Model saved' : '✓ Using auto-detect');
+      }
+    });
+  });
+
+  // Global enable toggle
+  globalEnable.addEventListener('change', () => {
+    const enabled = globalEnable.checked;
+    chrome.storage.local.set({ siwoti_globalEnabled: enabled }, () => {
+      if (!chrome.runtime.lastError) {
+        showStatus(enabled ? '✓ Extension enabled' : '✓ Extension disabled');
+        console.log('Global enabled:', enabled);
+      }
+    });
+  });
+
+  // Site enable toggle
+  siteEnable.addEventListener('change', () => {
+    const enabled = siteEnable.checked;
+    chrome.storage.local.get(['siwoti_disabledSites'], (data) => {
+      let disabledSites = data.siwoti_disabledSites || [];
+      
+      if (enabled) {
+        // Remove from disabled list
+        disabledSites = disabledSites.filter(site => site !== currentHostname);
+      } else {
+        // Add to disabled list
+        if (!disabledSites.includes(currentHostname)) {
+          disabledSites.push(currentHostname);
+        }
+      }
+      
+      chrome.storage.local.set({ siwoti_disabledSites: disabledSites }, () => {
+        if (!chrome.runtime.lastError) {
+          showStatus(enabled ? `✓ Enabled for ${currentHostname}` : `✓ Disabled for ${currentHostname}`);
+          console.log('Site enabled:', enabled, 'for', currentHostname);
+        }
+      });
+    });
+  });
+
+  // Collapsible config section toggle handler
+  if (toggleConfig && configSection) {
+    console.log('Attaching click handler to toggleConfig button');
+    toggleConfig.addEventListener('click', (e) => {
+      console.log('Toggle clicked!');
+      e.preventDefault();
+      e.stopPropagation();
+
+      // Ensure transitions are enabled after first user interaction (remove no-init-anim)
+      if (configSection.classList.contains('no-init-anim')) {
+        console.log('Removing no-init-anim to enable transitions');
+        configSection.classList.remove('no-init-anim');
+      }
+      
+      const isCollapsed = configSection.classList.contains('collapsed');
+      console.log('Current state - collapsed:', isCollapsed);
+      
+      if (isCollapsed) {
+        configSection.classList.remove('collapsed');
+        console.log('Config expanded - classes:', configSection.className);
+      } else {
+        configSection.classList.add('collapsed');
+        console.log('Config collapsed - classes:', configSection.className);
+      }
+    });
+  } else {
+    console.error('Could not attach click handler - missing elements:', {
+      toggleConfig: toggleConfig,
+      configSection: configSection
+    });
+  }
+
+  // Helper to show status messages
+  function showStatus(message, duration = 2000) {
+    status.textContent = message;
+    setTimeout(() => (status.textContent = ''), duration);
+  }
+
   scanBtn.addEventListener('click', async () => {
-    status.textContent = 'Scanning...';
-    result.textContent = '';
-    // set tone for content script
-    const selectedTone = tone.value || 'funny';
-    // write a small script to set the tone variable for the page's content script
+    showStatus('🔍 Scanning...', 5000);
+    
     try {
       const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
       if (!tab || !tab.id) {
-        status.textContent = 'No active tab.';
+        showStatus('❌ No active tab');
         return;
       }
-      // set a page-global variable used by content script
-      await chrome.scripting.executeScript({
-        target: { tabId: tab.id },
-        func: (t) => { window.__SIWOTI_TONE = t; },
-        args: [selectedTone]
-      });
 
-      // tell content script to scan (content script listens for messages)
+      // tell content script to scan
       chrome.tabs.sendMessage(tab.id, { type: 'scan' }, (response) => {
         if (chrome.runtime.lastError) {
-          status.textContent = 'Scan failed: content script not active on this page.';
+          showStatus('❌ Extension not active on this page', 3000);
           console.warn(chrome.runtime.lastError.message);
           return;
         }
         if (response && response.found) {
-          status.textContent = 'Found a candidate comment. Click the highlight on page to get a suggested reply.';
-          result.textContent = 'Detected comment: ' + (response.text || '(text not returned)');
+          const count = response.count || 0;
+          showStatus(`✓ Found ${count} comment${count !== 1 ? 's' : ''}! Click "Suggest" buttons on page`, 4000);
         } else {
-          status.textContent = 'No comment section detected.';
+          showStatus('ℹ️ No comments detected on this page', 3000);
         }
-        setTimeout(() => (status.textContent = ''), 3000);
       });
     } catch (err) {
       console.error(err);
-      status.textContent = 'Error during scan.';
+      showStatus('❌ Scan error');
     }
   });
 });

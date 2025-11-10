@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "Somebody is wrong on the internet!",
+  "name": "Someone is wrong on the internet!",
   "version": "0.1.0",
   "description": "PoC: scans pages for comment sections and suggests funny gotcha replies (AI placeholder).",
   "permissions": ["activeTab", "scripting", "storage", "contextMenus"],
@@ -9,7 +9,7 @@
     "service_worker": "src/background.js",
     "scripts": ["src/background.js"]
   },
-  "action": { "default_popup": "src/popup.html", "default_title": "Somebody is wrong on the internet!" },
+  "action": { "default_popup": "src/popup.html", "default_title": "Someone is wrong on the internet!" },
   "content_scripts": [
     {
       "matches": ["<all_urls>"],

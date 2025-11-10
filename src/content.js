@@ -220,64 +220,190 @@ function attachReplyButton(targetEl, commentText) {
   overlay.style.left = (window.scrollX + rect.right - 10) + 'px';
   overlay.style.top = (window.scrollY + rect.top + 6) + 'px';
   overlay.style.pointerEvents = 'auto';
+  overlay.style.display = 'inline-flex';
+  overlay.style.gap = '0';
+  overlay.style.alignItems = 'stretch';
+  overlay.style.borderRadius = '8px';
+  overlay.style.overflow = 'visible';
+  overlay.style.background = 'transparent';
+  overlay.style.border = 'none';
+  overlay.style.fontFamily = "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif";
 
-  // small button
+  // Per-run tone state (defaults from storage)
+  let currentTone = 'funny';
+  let arrowBtn = null; // will be assigned later
+  const getToneEmoji = (t) => ({ funny: '🎭', sarcastic: '😏', mild: '😌' }[t] || '▾');
+  const updateArrowEmoji = () => {
+    if (arrowBtn) {
+      arrowBtn.textContent = getToneEmoji(currentTone);
+      arrowBtn.setAttribute('title', `Tone: ${currentTone}`);
+    }
+  };
+  chrome.storage.local.get(['siwoti_tone'], (data) => {
+    currentTone = (data && data.siwoti_tone) || 'funny';
+  });
+
+  // Suggest button
+  // Split button wrapper (main + arrow)
+  const split = document.createElement('div');
+  split.style.display = 'inline-flex';
+  split.style.alignItems = 'stretch';
+  split.style.borderRadius = '8px';
+  split.style.overflow = 'hidden';
+  split.style.boxShadow = '0 2px 6px rgba(0,0,0,0.2)';
+
   const btn = document.createElement('button');
   btn.textContent = 'Suggest';
   btn.className = 'siwoti-reply-btn';
-  btn.style.padding = '6px 8px';
+  btn.style.padding = '6px 10px';
   btn.style.cursor = 'pointer';
-  btn.style.borderRadius = '6px';
   btn.style.background = '#0b5cff';
   btn.style.color = 'white';
   btn.style.border = 'none';
   btn.style.fontSize = '12px';
-  btn.style.boxShadow = '0 2px 6px rgba(0,0,0,0.2)';
+  btn.style.fontWeight = '600';
+  btn.style.lineHeight = '1';
+
+  arrowBtn = document.createElement('button');
+  arrowBtn.setAttribute('aria-label', 'Choose tone');
+  arrowBtn.textContent = '▾';
+  arrowBtn.style.width = '28px';
+  arrowBtn.style.background = '#0b5cff';
+  arrowBtn.style.color = 'white';
+  arrowBtn.style.border = 'none';
+  arrowBtn.style.cursor = 'pointer';
+  arrowBtn.style.fontSize = '12px';
+  arrowBtn.style.borderLeft = '1px solid rgba(255,255,255,0.35)';
+
+  // Dropdown menu
+  const menu = document.createElement('div');
+  menu.style.position = 'absolute';
+  menu.style.top = '100%';
+  menu.style.right = '0';
+  menu.style.marginTop = '6px';
+  menu.style.background = 'white';
+  menu.style.border = '1px solid rgba(0,0,0,0.12)';
+  menu.style.borderRadius = '8px';
+  menu.style.boxShadow = '0 8px 24px rgba(0,0,0,0.15)';
+  menu.style.padding = '6px';
+  menu.style.display = 'none';
+  menu.style.minWidth = '140px';
+  menu.style.zIndex = 2147483647;
+  const menuItemByValue = new Map();
+  const refreshMenuHighlight = () => {
+    for (const [value, item] of menuItemByValue.entries()) {
+      if (value === currentTone) {
+        item.style.background = '#eef2ff';
+        item.style.fontWeight = '600';
+      } else {
+        item.style.background = 'transparent';
+        item.style.fontWeight = '500';
+      }
+    }
+  };
+
+  const addMenuItem = (value, label, emoji) => {
+    const item = document.createElement('button');
+    item.type = 'button';
+    item.textContent = `${emoji} ${label}`;
+    item.style.display = 'block';
+    item.style.width = '100%';
+    item.style.textAlign = 'left';
+    item.style.padding = '8px 10px';
+    item.style.fontSize = '12px';
+    item.style.border = 'none';
+    item.style.background = 'transparent';
+    item.style.borderRadius = '6px';
+    item.style.cursor = 'pointer';
+    item.addEventListener('mouseenter', () => { item.style.background = '#f5f5f7'; });
+    item.addEventListener('mouseleave', () => { item.style.background = 'transparent'; });
+    item.addEventListener('click', (e) => {
+      e.stopPropagation();
+      e.preventDefault();
+      currentTone = value;
+      updateArrowEmoji();
+      refreshMenuHighlight();
+      menu.style.display = 'none';
+    });
+    menuItemByValue.set(value, item);
+    return item;
+  };
+
+  menu.appendChild(addMenuItem('funny', 'Funny', '🎭'));
+  menu.appendChild(addMenuItem('sarcastic', 'Sarcastic', '😏'));
+  menu.appendChild(addMenuItem('mild', 'Mild', '😌'));
 
   // prevent clicks from reaching the page underneath
-  overlay.addEventListener('click', (e) => { e.stopPropagation(); e.preventDefault(); });
+  overlay.addEventListener('click', (e) => { e.stopPropagation(); });
+  
   btn.addEventListener('click', (e) => {
     e.stopPropagation();
     e.preventDefault();
     btn.textContent = '...';
     btn.disabled = true;
+  arrowBtn.disabled = true;
     
-    // Get tone from storage
-    chrome.storage.local.get(['siwoti_tone'], (data) => {
-      const tone = (data && data.siwoti_tone) || 'funny';
-      console.log('🎯 Requesting reply generation:', {
-        fullComment: commentText,
-        commentLength: commentText.length,
-        tone
-      });
-      
-      // request generation from background/service worker
-      chrome.runtime.sendMessage({ type: 'generateReply', comment: commentText, tone }, (response) => {
-      btn.textContent = 'Suggest';
-      btn.disabled = false;
+  const tone = currentTone;
+    console.log('🎯 Requesting reply generation:', {
+      fullComment: commentText,
+      commentLength: commentText.length,
+      tone
+    });
+    
+    // request generation from background/service worker
+    chrome.runtime.sendMessage({ type: 'generateReply', comment: commentText, tone }, (response) => {
+  btn.textContent = 'Suggest';
+  btn.disabled = false;
+  arrowBtn.disabled = false;
       
       console.log('🎯 Received response:', response);
       
-        btn.textContent = 'Suggest';
-        btn.disabled = false;
-        
-        console.log('🎯 Received response:', response);
-        
-        if (response && response.reply) {
-          console.log('✅ Got reply:', response.reply.slice(0, 100) + (response.reply.length > 100 ? '...' : ''));
-          showSuggestedReplyFloating(targetEl, response.reply, overlay, response.cached);
-        } else {
-          const errMsg = response && response.error ? response.error : 'AI API call failed. Check your API key in the extension popup.';
-          console.error('❌ Reply generation failed:', errMsg);
-          showSuggestedReplyFloating(targetEl, errMsg, overlay, false, true);
-        }
-      });
+      if (response && response.reply) {
+        console.log('✅ Got reply:', response.reply.slice(0, 100) + (response.reply.length > 100 ? '...' : ''));
+        showSuggestedReplyFloating(targetEl, response.reply, overlay, response.cached);
+      } else {
+        const errMsg = response && response.error ? response.error : 'AI API call failed. Check your API key in the extension popup.';
+        console.error('❌ Reply generation failed:', errMsg);
+        showSuggestedReplyFloating(targetEl, errMsg, overlay, false, true);
+      }
     });
   });
 
-  overlay.appendChild(btn);
+  // Compose elements
+  split.appendChild(btn);
+  split.appendChild(arrowBtn);
+  overlay.appendChild(split);
+  overlay.appendChild(menu);
+
+  // Toggle dropdown
+  arrowBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    e.preventDefault();
+    const willOpen = (menu.style.display === 'none');
+    if (willOpen) refreshMenuHighlight();
+    menu.style.display = willOpen ? 'block' : 'none';
+  });
+
+  // Close on outside click
+  const onDocClick = (e) => {
+    if (!overlay.contains(e.target)) {
+      menu.style.display = 'none';
+    }
+  };
+  document.addEventListener('click', onDocClick, true);
   document.body.appendChild(overlay);
   window.__SIWOTI_OVERLAYS.push(overlay);
+
+  // Clean up outside click listener when overlay removed
+  const mo = new MutationObserver(() => {
+    if (!document.body.contains(overlay)) {
+      document.removeEventListener('click', onDocClick, true);
+      mo.disconnect();
+    }
+  });
+  mo.observe(document.body, { childList: true, subtree: true });
+
+  // Keep default arrow ▾ until user explicitly selects a tone
 }
 
 function clearFloatingForElement(targetEl) {
@@ -317,6 +443,7 @@ function showSuggestedReplyFloating(targetEl, replyText, anchorOverlay, isCached
   box.style.boxShadow = '0 6px 18px rgba(0,0,0,0.12)';
   box.style.fontSize = '13px';
   box.style.color = isError ? '#d00' : '#111';
+  box.style.fontFamily = "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif";
 
   // add cached badge if applicable
   if (isCached && !isError) {
@@ -389,7 +516,7 @@ function handleUserComment(commentText, tone) {
     box.style.borderRadius = '8px';
     box.style.boxShadow = '0 6px 18px rgba(0,0,0,0.2)';
     box.style.fontSize = '13px';
-    box.style.fontFamily = 'sans-serif';
+  box.style.fontFamily = "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif";
     
     const isError = !response || !response.reply;
     box.style.background = isError ? '#fff3f3' : 'white';
@@ -459,29 +586,48 @@ function handleUserComment(commentText, tone) {
   });
 }
 
-function scanAndHighlight() {
-  clearHighlights();
-  const candidates = gatherCandidateComments();
-  if (candidates.size === 0) return { found: false };
-  
-  // attach a suggest button to ALL found comments
-  let count = 0;
-  for (const [el, text] of candidates.entries()) {
-    const safe = getSafeContainer(el) || el;
-    safe.classList.add('siwoti-highlight');
-    safe.style.outline = '2px solid rgba(11,92,255,0.25)';
-    attachReplyButton(safe, text);
-    count++;
-  }
-  
-  return { found: true, count, text: `Found ${count} comment(s)` };
+function scanAndHighlight(callback) {
+  // Check if extension is enabled
+  chrome.storage.local.get(['siwoti_globalEnabled', 'siwoti_disabledSites'], (data) => {
+    const globalEnabled = data.siwoti_globalEnabled !== false;
+    const disabledSites = data.siwoti_disabledSites || [];
+    const currentHostname = window.location.hostname;
+    const siteEnabled = !disabledSites.includes(currentHostname);
+    
+    if (!globalEnabled || !siteEnabled) {
+      console.log('SIWOTI: Extension disabled', { globalEnabled, siteEnabled, currentHostname });
+      if (callback) callback({ found: false, count: 0, disabled: true });
+      return;
+    }
+    
+    clearHighlights();
+    const candidates = gatherCandidateComments();
+    if (candidates.size === 0) {
+      if (callback) callback({ found: false, count: 0 });
+      return;
+    }
+    
+    // attach a suggest button to ALL found comments
+    let count = 0;
+    for (const [el, text] of candidates.entries()) {
+      const safe = getSafeContainer(el) || el;
+      safe.classList.add('siwoti-highlight');
+      safe.style.outline = '2px solid rgba(11,92,255,0.25)';
+      attachReplyButton(safe, text);
+      count++;
+    }
+    
+    if (callback) callback({ found: true, count, text: `Found ${count} comment(s)` });
+  });
 }
 
 // Listen for messages from popup / background
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   if (msg && msg.type === 'scan') {
-    const res = scanAndHighlight();
-    sendResponse(res);
+    scanAndHighlight((result) => {
+      sendResponse(result);
+    });
+    return true; // indicate async response
   }
   if (msg && msg.type === 'generateReplyFromSelection') {
     // right-click context menu triggered

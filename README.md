@@ -1,4 +1,4 @@
-## Somebody is wrong on the internet! (PoC)
+## Someone is wrong on the internet! (PoC)
 
 This is a minimal proof-of-concept browser extension that scans pages for comment sections and identifies a likely "most stupid" comment (very simple heuristics). It can generate a suggested gotcha-style reply using an AI provider (OpenAI-compatible integration included as a PoC). Replace or configure the API provider and key as needed.
 
@@ -12,7 +12,7 @@ Files of interest:
 How to load (Chrome / Edge / Brave):
 1. Open chrome://extensions (or edge://extensions).
 2. Enable "Developer mode".
-3. Click "Load unpacked" and choose this project folder (`somebody-is-wrong-on-the-internet`).
+3. Click "Load unpacked" and choose this project folder (`someone-is-wrong-on-the-internet`).
 4. Open a website with comments (e.g., news article or forum), open the extension popup and click "Scan page for comments".
 
 How to load and test in Firefox (temporary add-on):
