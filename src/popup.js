@@ -10,7 +10,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   const apibase = document.getElementById('apibase');
   const model = document.getElementById('model');
   const toggleKey = document.getElementById('toggleKey');
-  const globalEnable = document.getElementById('globalEnable');
   const siteEnable = document.getElementById('siteEnable');
   const currentSite = document.getElementById('currentSite');
   const toggleConfig = document.getElementById('toggleConfig');
@@ -48,7 +47,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     'siwoti_apiBase', 
     'siwoti_model', 
     'siwoti_tone',
-    'siwoti_globalEnabled',
     'siwoti_disabledSites'
   ], (data) => {
     if (data && data.siwoti_apiKey) apikey.value = data.siwoti_apiKey;
@@ -56,10 +54,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (data && data.siwoti_model) model.value = data.siwoti_model;
     if (data && data.siwoti_tone) tone.value = data.siwoti_tone;
     
-    // Load enable states
-    const globalEnabled = data.siwoti_globalEnabled !== false; // default true
-    globalEnable.checked = globalEnabled;
-    
+  // Load enable states
     const disabledSites = data.siwoti_disabledSites || [];
     const siteEnabled = !disabledSites.includes(currentHostname);
     siteEnable.checked = siteEnabled;
@@ -83,7 +78,6 @@ document.addEventListener('DOMContentLoaded', async () => {
       apiBase: data && data.siwoti_apiBase || 'none',
       model: data && data.siwoti_model || 'none',
       tone: data && data.siwoti_tone || 'funny',
-      globalEnabled,
       siteEnabled,
       currentHostname,
       hasApiSettings
@@ -143,16 +137,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
   });
 
-  // Global enable toggle
-  globalEnable.addEventListener('change', () => {
-    const enabled = globalEnable.checked;
-    chrome.storage.local.set({ siwoti_globalEnabled: enabled }, () => {
-      if (!chrome.runtime.lastError) {
-        showStatus(enabled ? '✓ Extension enabled' : '✓ Extension disabled');
-        console.log('Global enabled:', enabled);
-      }
-    });
-  });
+  // Removed global enable toggle; extension is always globally on. Use site toggle instead.
 
   // Site enable toggle
   siteEnable.addEventListener('change', () => {

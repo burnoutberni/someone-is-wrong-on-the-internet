@@ -587,9 +587,9 @@ function handleUserComment(commentText, tone) {
 }
 
 function scanAndHighlight(callback) {
-  // Check if extension is enabled
-  chrome.storage.local.get(['siwoti_globalEnabled', 'siwoti_disabledSites'], (data) => {
-    const globalEnabled = data.siwoti_globalEnabled !== false;
+  // Check if extension is enabled (global always enabled; respect per-site disable list)
+  chrome.storage.local.get(['siwoti_disabledSites'], (data) => {
+    const globalEnabled = true;
     const disabledSites = data.siwoti_disabledSites || [];
     const currentHostname = window.location.hostname;
     const siteEnabled = !disabledSites.includes(currentHostname);
