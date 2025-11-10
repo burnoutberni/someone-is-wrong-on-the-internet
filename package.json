@@ -1,7 +1,7 @@
 {
   "name": "someone-is-wrong-on-the-internet",
   "version": "0.1.0",
-  "description": "Browser extension that detects problematic comments and generates contextual AI replies with multi-language support",
+  "description": "Browser extension that generates contextual AI replies with multi-language support",
   "author": "",
-  "license": "MIT"
+  "license": "AGPL-3.0"
 }
