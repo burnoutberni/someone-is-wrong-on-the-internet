@@ -4,14 +4,116 @@
 const replyCache = new Map();
 
 // Simple hash function for cache keys
-function hashKey(comment, tone) {
-  const str = `${comment.trim().toLowerCase()}|${tone}`;
+function hashKey(comment, tone, lang) {
+  const str = `${comment.trim().toLowerCase()}|${tone}|${lang}`;
   let hash = 0;
   for (let i = 0; i < str.length; i++) {
     hash = ((hash << 5) - hash) + str.charCodeAt(i);
     hash |= 0;
   }
   return hash.toString(36);
+}
+
+// Language-specific prompts for the 10 most spoken languages globally
+const LANGUAGE_PROMPTS = {
+  en: {
+    system: `You are a witty, concise assistant that writes short gotcha-style replies to internet comments. Keep replies between 10 and 60 words.`,
+    user: (tone, comment) => `Write a ${tone} reply to this comment:\n\n"""\n${comment}\n"""\n\nKeep it short, humorous, and not abusive.`
+  },
+  zh: {
+    system: `你是一个机智、简洁的助手，专门为网络评论撰写简短的"反驳式"回复。回复应保持在10到60个字之间。`,
+    user: (tone, comment) => `为这条评论写一个${tone}的回复：\n\n"""\n${comment}\n"""\n\n保持简短、幽默，不要粗俗。`
+  },
+  hi: {
+    system: `आप एक चतुर, संक्षिप्त सहायक हैं जो इंटरनेट टिप्पणियों के लिए छोटे गोचा-शैली के जवाब लिखते हैं। जवाब 10 से 60 शब्दों के बीच रखें।`,
+    user: (tone, comment) => `इस टिप्पणी का ${tone} जवाब लिखें:\n\n"""\n${comment}\n"""\n\nइसे छोटा, हास्यपूर्ण और अपमानजनक नहीं रखें।`
+  },
+  es: {
+    system: `Eres un asistente ingenioso y conciso que escribe respuestas cortas y contundentes a comentarios de internet. Mantén las respuestas entre 10 y 60 palabras.`,
+    user: (tone, comment) => `Escribe una respuesta ${tone} a este comentario:\n\n"""\n${comment}\n"""\n\nMantenla corta, divertida y no abusiva.`
+  },
+  fr: {
+    system: `Tu es un assistant spirituel et concis qui écrit de courtes réponses percutantes aux commentaires sur internet. Garde les réponses entre 10 et 60 mots.`,
+    user: (tone, comment) => `Écris une réponse ${tone} à ce commentaire:\n\n"""\n${comment}\n"""\n\nGarde-la courte, humoristique et non abusive.`
+  },
+  ar: {
+    system: `أنت مساعد ذكي وموجز يكتب ردودًا قصيرة ومفحمة على تعليقات الإنترنت. حافظ على الردود بين 10 و 60 كلمة.`,
+    user: (tone, comment) => `اكتب ردًا ${tone} على هذا التعليق:\n\n"""\n${comment}\n"""\n\nاجعله قصيرًا وفكاهيًا وغير مسيء.`
+  },
+  bn: {
+    system: `আপনি একজন বুদ্ধিমান, সংক্ষিপ্ত সহায়ক যিনি ইন্টারনেট মন্তব্যের জন্য ছোট গোচা-স্টাইল উত্তর লেখেন। উত্তরগুলি 10 থেকে 60 শব্দের মধ্যে রাখুন।`,
+    user: (tone, comment) => `এই মন্তব্যের জন্য একটি ${tone} উত্তর লিখুন:\n\n"""\n${comment}\n"""\n\nএটি সংক্ষিপ্ত, হাস্যকর এবং অপমানজনক নয় রাখুন।`
+  },
+  pt: {
+    system: `Você é um assistente espirituoso e conciso que escreve respostas curtas e contundentes a comentários da internet. Mantenha as respostas entre 10 e 60 palavras.`,
+    user: (tone, comment) => `Escreva uma resposta ${tone} a este comentário:\n\n"""\n${comment}\n"""\n\nMantenha-a curta, bem-humorada e não abusiva.`
+  },
+  ru: {
+    system: `Вы остроумный и лаконичный помощник, который пишет короткие едкие ответы на интернет-комментарии. Держите ответы в пределах 10-60 слов.`,
+    user: (tone, comment) => `Напишите ${tone} ответ на этот комментарий:\n\n"""\n${comment}\n"""\n\nСделайте его коротким, юмористичным и не оскорбительным.`
+  },
+  ja: {
+    system: `あなたは機知に富んだ簡潔なアシスタントで、インターネットのコメントに対して短い切り返しスタイルの返信を書きます。返信は10〜60語に保ってください。`,
+    user: (tone, comment) => `このコメントに${tone}返信を書いてください：\n\n"""\n${comment}\n"""\n\n短く、ユーモラスで、攻撃的でないようにしてください。`
+  },
+  de: {
+    system: `Du bist ein witziger, prägnanter Assistent, der kurze, schlagfertige Antworten auf Internetkommentare schreibt. Halte die Antworten zwischen 10 und 60 Wörtern.`,
+    user: (tone, comment) => `Schreibe eine ${tone} Antwort auf diesen Kommentar:\n\n"""\n${comment}\n"""\n\nHalte sie kurz, humorvoll und nicht beleidigend.`
+  },
+  it: {
+    system: `Sei un assistente arguto e conciso che scrive risposte brevi e incisive ai commenti su internet. Mantieni le risposte tra 10 e 60 parole.`,
+    user: (tone, comment) => `Scrivi una risposta ${tone} a questo commento:\n\n"""\n${comment}\n"""\n\nMantienila breve, divertente e non offensiva.`
+  },
+  sv: {
+    system: `Du är en kvick, koncis assistent som skriver korta, slagfärdiga svar på internetkommentarer. Håll svaren mellan 10 och 60 ord.`,
+    user: (tone, comment) => `Skriv ett ${tone} svar på denna kommentar:\n\n"""\n${comment}\n"""\n\nHåll det kort, humoristiskt och inte kränkande.`
+  }
+};
+
+// Simple language detection based on character patterns
+function detectLanguage(text) {
+  const sample = text.slice(0, 500).toLowerCase();
+  
+  // Chinese (simplified/traditional) - detect CJK characters
+  if (/[\u4e00-\u9fff\u3400-\u4dbf]/.test(sample)) return 'zh';
+  
+  // Japanese - detect hiragana/katakana
+  if (/[\u3040-\u309f\u30a0-\u30ff]/.test(sample)) return 'ja';
+  
+  // Arabic - detect Arabic script
+  if (/[\u0600-\u06ff\u0750-\u077f]/.test(sample)) return 'ar';
+  
+  // Hindi/Bengali - detect Devanagari/Bengali script
+  if (/[\u0900-\u097f]/.test(sample)) return 'hi';
+  if (/[\u0980-\u09ff]/.test(sample)) return 'bn';
+  
+  // Russian - detect Cyrillic
+  if (/[\u0400-\u04ff]/.test(sample)) return 'ru';
+  
+  // For Latin-script languages, use common words/patterns
+  const latinWords = {
+    de: /\b(der|die|das|den|dem|des|ein|eine|und|in|zu|ist|von|mit|auf|für|nicht|sich|auch|aus|ich|sie|er)\b/g,
+    es: /\b(el|la|los|las|de|que|es|en|un|una|por|con|para|está|como|muy|pero|sido)\b/g,
+    fr: /\b(le|la|les|de|des|un|une|et|est|dans|pour|qui|avec|ce|il|elle|sont|plus|pas)\b/g,
+    it: /\b(il|lo|la|i|gli|le|di|da|in|con|su|per|tra|fra|a|è|sono|ha|hanno|che|non|un|una)\b/g,
+    pt: /\b(o|a|os|as|de|que|em|um|uma|para|com|não|se|por|mais|como|mas|foi|ele|ela)\b/g,
+    sv: /\b(och|i|att|det|som|på|är|av|för|med|till|en|ett|den|har|de|inte|om|var|ett|han|hon)\b/g,
+    en: /\b(the|is|are|was|were|have|has|had|be|been|do|does|did|will|would|can|could|may|might)\b/g
+  };
+  
+  let maxCount = 0;
+  let detectedLang = 'en';
+  
+  for (const [lang, pattern] of Object.entries(latinWords)) {
+    const matches = sample.match(pattern);
+    const count = matches ? matches.length : 0;
+    if (count > maxCount) {
+      maxCount = count;
+      detectedLang = lang;
+    }
+  }
+  
+  return detectedLang;
 }
 
 chrome.runtime.onInstalled.addListener(() => {
@@ -84,8 +186,14 @@ async function callOpenAI(commentText, tone) {
         return;
       }
 
-      const system = `You are a witty, concise assistant that writes short gotcha-style replies to internet comments. Keep replies between 10 and 60 words unless the user asked for a different tone.`;
-      const prompt = `Write a ${tone} reply to this comment:\n\n"""\n${commentText}\n"""\n\nKeep it short, humorous, and not abusive.`;
+      // Detect language and get appropriate prompts
+      const detectedLang = detectLanguage(commentText);
+      const langPrompts = LANGUAGE_PROMPTS[detectedLang] || LANGUAGE_PROMPTS.en;
+      
+      console.log('🌍 Detected language:', detectedLang);
+      
+      const system = langPrompts.system;
+      const prompt = langPrompts.user(tone, commentText);
 
       // Choose model: user-specified, or defaults (gpt-3.5-turbo for OpenAI, llama3.2 for Ollama)
       const model = customModel || (isOllama || isOpenWebUI ? 'llama3.2' : 'gpt-3.5-turbo');
@@ -176,10 +284,13 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     const tone = msg.tone || 'funny';
     const comment = msg.comment || '';
     
-    // Check cache first
-    const cacheKey = hashKey(comment, tone);
+    // Detect language for cache key
+    const detectedLang = detectLanguage(comment);
+    
+    // Check cache first (including language in cache key)
+    const cacheKey = hashKey(comment, tone, detectedLang);
     if (replyCache.has(cacheKey)) {
-      console.log('Returning cached reply for:', comment.slice(0, 50));
+      console.log('Returning cached reply for:', comment.slice(0, 50), '(lang:', detectedLang + ')');
       sendResponse({ reply: replyCache.get(cacheKey), cached: true });
       return true;
     }
