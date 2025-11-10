@@ -17,15 +17,17 @@ document.addEventListener('DOMContentLoaded', () => {
   
   console.log('Elements found:', { scanBtn, status, saveKey, saveBase, saveModel, toggleKey });
 
-  // load stored API key, base, and model (if any)
-  chrome.storage.local.get(['siwoti_apiKey', 'siwoti_apiBase', 'siwoti_model'], (data) => {
+  // load stored API key, base, model, and tone (if any)
+  chrome.storage.local.get(['siwoti_apiKey', 'siwoti_apiBase', 'siwoti_model', 'siwoti_tone'], (data) => {
     if (data && data.siwoti_apiKey) apikey.value = data.siwoti_apiKey;
     if (data && data.siwoti_apiBase) apibase.value = data.siwoti_apiBase;
     if (data && data.siwoti_model) model.value = data.siwoti_model;
+    if (data && data.siwoti_tone) tone.value = data.siwoti_tone;
     console.log('Loaded settings:', { 
       apiKey: data && data.siwoti_apiKey ? '***' + data.siwoti_apiKey.slice(-4) : 'none',
       apiBase: data && data.siwoti_apiBase || 'none',
-      model: data && data.siwoti_model || 'none'
+      model: data && data.siwoti_model || 'none',
+      tone: data && data.siwoti_tone || 'funny'
     });
   });
 
@@ -88,6 +90,21 @@ document.addEventListener('DOMContentLoaded', () => {
         console.log('Model saved successfully');
       }
       setTimeout(() => (status.textContent = ''), 2200);
+    });
+  });
+
+  // Save tone on change
+  tone.addEventListener('change', () => {
+    console.log('Tone changed to:', tone.value);
+    const selectedTone = tone.value;
+    chrome.storage.local.set({ siwoti_tone: selectedTone }, () => {
+      if (chrome.runtime.lastError) {
+        console.error('Error saving tone:', chrome.runtime.lastError);
+      } else {
+        console.log('Tone saved successfully:', selectedTone);
+        status.textContent = 'Tone saved: ' + selectedTone;
+        setTimeout(() => (status.textContent = ''), 1500);
+      }
     });
   });
 

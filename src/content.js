@@ -232,28 +232,36 @@ function attachReplyButton(targetEl, commentText) {
     btn.textContent = '...';
     btn.disabled = true;
     
-    const tone = window.__SIWOTI_TONE || 'funny';
-    console.log('🎯 Requesting reply generation:', {
-      fullComment: commentText,
-      commentLength: commentText.length,
-      tone
-    });
-    
-    // request generation from background/service worker
-    chrome.runtime.sendMessage({ type: 'generateReply', comment: commentText, tone }, (response) => {
+    // Get tone from storage
+    chrome.storage.local.get(['siwoti_tone'], (data) => {
+      const tone = (data && data.siwoti_tone) || 'funny';
+      console.log('🎯 Requesting reply generation:', {
+        fullComment: commentText,
+        commentLength: commentText.length,
+        tone
+      });
+      
+      // request generation from background/service worker
+      chrome.runtime.sendMessage({ type: 'generateReply', comment: commentText, tone }, (response) => {
       btn.textContent = 'Suggest';
       btn.disabled = false;
       
       console.log('🎯 Received response:', response);
       
-      if (response && response.reply) {
-        console.log('✅ Got reply:', response.reply.slice(0, 100) + (response.reply.length > 100 ? '...' : ''));
-        showSuggestedReplyFloating(targetEl, response.reply, overlay, response.cached);
-      } else {
-        const errMsg = response && response.error ? response.error : 'AI API call failed. Check your API key in the extension popup.';
-        console.error('❌ Reply generation failed:', errMsg);
-        showSuggestedReplyFloating(targetEl, errMsg, overlay, false, true);
-      }
+        btn.textContent = 'Suggest';
+        btn.disabled = false;
+        
+        console.log('🎯 Received response:', response);
+        
+        if (response && response.reply) {
+          console.log('✅ Got reply:', response.reply.slice(0, 100) + (response.reply.length > 100 ? '...' : ''));
+          showSuggestedReplyFloating(targetEl, response.reply, overlay, response.cached);
+        } else {
+          const errMsg = response && response.error ? response.error : 'AI API call failed. Check your API key in the extension popup.';
+          console.error('❌ Reply generation failed:', errMsg);
+          showSuggestedReplyFloating(targetEl, errMsg, overlay, false, true);
+        }
+      });
     });
   });
 
@@ -350,14 +358,18 @@ function handleUserComment(commentText, tone) {
   tempContainer.style.transform = 'translate(-50%, -50%)';
   tempContainer.style.zIndex = 2147483647;
   
-  // request reply from background
-  console.log('🎯 Right-click: requesting reply generation:', {
-    fullComment: commentText,
-    commentLength: commentText.length,
-    tone: tone || 'funny'
-  });
-  
-  chrome.runtime.sendMessage({ type: 'generateReply', comment: commentText, tone: tone || 'funny' }, (response) => {
+  // Get tone from storage if not provided
+  chrome.storage.local.get(['siwoti_tone'], (data) => {
+    const selectedTone = tone || (data && data.siwoti_tone) || 'funny';
+    
+    // request reply from background
+    console.log('🎯 Right-click: requesting reply generation:', {
+      fullComment: commentText,
+      commentLength: commentText.length,
+      tone: selectedTone
+    });
+    
+    chrome.runtime.sendMessage({ type: 'generateReply', comment: commentText, tone: selectedTone }, (response) => {
     console.log('🎯 Right-click: received response:', response);
     
     const box = document.createElement('div');
@@ -379,60 +391,61 @@ function handleUserComment(commentText, tone) {
     title.style.fontWeight = 'bold';
     title.style.marginBottom = '8px';
     title.style.fontSize = '13px';
-    title.textContent = isError ? 'Error' : ('Suggested reply (' + (tone || 'funny') + ')' + (response.cached ? ' [cached]' : ''));
-    box.appendChild(title);
-    
-    // reply text or error
-    const p = document.createElement('div');
-    p.textContent = response && response.reply ? response.reply : (response && response.error ? response.error : 'AI API call failed. Check your API key.');
-    p.style.marginBottom = '10px';
-    p.style.lineHeight = '1.4';
-    box.appendChild(p);
-    
-    // button row
-    const btnRow = document.createElement('div');
-    btnRow.style.display = 'flex';
-    btnRow.style.gap = '8px';
-    
-    if (!isError) {
-      const copyBtn = document.createElement('button');
-      copyBtn.textContent = 'Copy';
-      copyBtn.style.padding = '6px 12px';
-      copyBtn.style.fontSize = '12px';
-      copyBtn.style.cursor = 'pointer';
-      copyBtn.style.borderRadius = '4px';
-      copyBtn.style.background = '#0b5cff';
-      copyBtn.style.color = 'white';
-      copyBtn.style.border = 'none';
-      copyBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        navigator.clipboard.writeText(response.reply).then(() => {
-          copyBtn.textContent = 'Copied!';
-          setTimeout(() => { copyBtn.textContent = 'Copy'; }, 1500);
+      title.textContent = isError ? 'Error' : ('Suggested reply (' + selectedTone + ')' + (response.cached ? ' [cached]' : ''));
+      box.appendChild(title);
+      
+      // reply text or error
+      const p = document.createElement('div');
+      p.textContent = response && response.reply ? response.reply : (response && response.error ? response.error : 'AI API call failed. Check your API key.');
+      p.style.marginBottom = '10px';
+      p.style.lineHeight = '1.4';
+      box.appendChild(p);
+      
+      // button row
+      const btnRow = document.createElement('div');
+      btnRow.style.display = 'flex';
+      btnRow.style.gap = '8px';
+      
+      if (!isError) {
+        const copyBtn = document.createElement('button');
+        copyBtn.textContent = 'Copy';
+        copyBtn.style.padding = '6px 12px';
+        copyBtn.style.fontSize = '12px';
+        copyBtn.style.cursor = 'pointer';
+        copyBtn.style.borderRadius = '4px';
+        copyBtn.style.background = '#0b5cff';
+        copyBtn.style.color = 'white';
+        copyBtn.style.border = 'none';
+        copyBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          navigator.clipboard.writeText(response.reply).then(() => {
+            copyBtn.textContent = 'Copied!';
+            setTimeout(() => { copyBtn.textContent = 'Copy'; }, 1500);
+          });
         });
+        btnRow.appendChild(copyBtn);
+      }
+      
+      const closeBtn = document.createElement('button');
+      closeBtn.textContent = 'Close';
+      closeBtn.style.padding = '6px 12px';
+      closeBtn.style.fontSize = '12px';
+      closeBtn.style.cursor = 'pointer';
+      closeBtn.style.borderRadius = '4px';
+      closeBtn.style.background = '#ccc';
+      closeBtn.style.border = 'none';
+      closeBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        tempContainer.remove();
+        window.__SIWOTI_OVERLAYS = window.__SIWOTI_OVERLAYS.filter(n => n !== tempContainer);
       });
-      btnRow.appendChild(copyBtn);
-    }
-    
-    const closeBtn = document.createElement('button');
-    closeBtn.textContent = 'Close';
-    closeBtn.style.padding = '6px 12px';
-    closeBtn.style.fontSize = '12px';
-    closeBtn.style.cursor = 'pointer';
-    closeBtn.style.borderRadius = '4px';
-    closeBtn.style.background = '#ccc';
-    closeBtn.style.border = 'none';
-    closeBtn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      tempContainer.remove();
-      window.__SIWOTI_OVERLAYS = window.__SIWOTI_OVERLAYS.filter(n => n !== tempContainer);
+      btnRow.appendChild(closeBtn);
+      
+      box.appendChild(btnRow);
+      tempContainer.appendChild(box);
+      document.body.appendChild(tempContainer);
+      window.__SIWOTI_OVERLAYS.push(tempContainer);
     });
-    btnRow.appendChild(closeBtn);
-    
-    box.appendChild(btnRow);
-    tempContainer.appendChild(box);
-    document.body.appendChild(tempContainer);
-    window.__SIWOTI_OVERLAYS.push(tempContainer);
   });
 }
 
