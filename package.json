@@ -1,7 +1,7 @@
 {
   "name": "someone-is-wrong-on-the-internet",
   "version": "0.1.0",
-  "description": "PoC browser extension: finds silly comments and suggests replies (AI placeholder)",
+  "description": "Browser extension that detects problematic comments and generates contextual AI replies with multi-language support",
   "author": "",
   "license": "MIT"
 }

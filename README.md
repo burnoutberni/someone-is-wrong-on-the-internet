@@ -1,13 +1,25 @@
-## Someone is wrong on the internet! (PoC)
+## Someone is wrong on the internet! ![Extension Icon](icons/icon-32.png)
 
-This is a minimal proof-of-concept browser extension that scans pages for comment sections and identifies a likely "most stupid" comment (very simple heuristics). It can generate a suggested gotcha-style reply using an AI provider (OpenAI-compatible integration included as a PoC). Replace or configure the API provider and key as needed.
+A browser extension that automatically scans web pages for comment sections, identifies potentially problematic comments using simple heuristics, and generates witty AI-powered replies to help you engage with internet discussions more effectively (and humorously).
 
-Files of interest:
-- `manifest.json` - extension manifest (MV3)
-- `src/content.js` - content script that scans the page and adds UI
-- `src/background.js` - service worker handling generation requests (calls OpenAI-compatible endpoint if configured)
-- `src/popup.html` / `src/popup.js` - popup UI to control scans and store API key and API base URL
-- `src/styles.css` - popup and injected styles
+### Features
+
+- **Smart Comment Detection**: Automatically finds comment sections on web pages using both generic and site-specific selectors
+- **Shadow DOM Support**: Works with modern sites that use shadow DOM (like derstandard.at)
+- **AI-Powered Replies**: Generates contextual, witty responses using OpenAI-compatible APIs
+- **Multi-language Support**: Supports English, Chinese, Hindi, Spanish, French, German, Arabic, Japanese, Russian, Italian and Swedish
+- **Multiple Tone Options**: Choose between funny, sarcastic, or mild response tones
+- **Site Management**: Enable/disable the extension per website
+- **Response Caching**: Avoids duplicate API calls for similar comments
+- **Privacy Controls**: Configurable API settings with local storage
+
+### Files Structure
+- `manifest.json` - Extension manifest (Manifest V3)
+- `src/content.js` - Content script that scans pages, detects comments, and injects UI elements
+- `src/background.js` - Service worker handling AI reply generation with multi-language support
+- `src/popup.html` / `src/popup.js` - Extension popup with settings and controls
+- `src/sites.json` - Site-specific comment selectors configuration
+- `src/styles.css` - Styling for popup and injected elements
 
 How to load (Chrome / Edge / Brave):
 1. Open chrome://extensions (or edge://extensions).
@@ -23,11 +35,28 @@ How to load and test in Firefox (temporary add-on):
 
 Notes about Firefox and Manifest V3: Firefox has partial support for MV3 features; content scripts and the popup should work for testing. The background service worker behavior may differ between Chrome and Firefox. If you see the background not responding in Firefox, try the injected "Suggest reply" button or test generation in Chrome for full MV3 behavior.
 
-How to enable real AI replies (OpenAI-compatible):
-1. Open the extension popup in your browser.
-2. Paste your OpenAI API key into the "AI API key" field and click "Save". No key is included in this repository — you must provide your own.
-3. By default the extension uses `https://api.openai.com` as the API base. If you prefer a custom proxy or different server, paste its base URL into the "AI API base URL" field and click "Save base".
-4. On a page with comments, click "Scan page for comments", then click the injected "Suggest reply" button to generate an AI reply. The background service worker will call the configured endpoint using your saved key.
+### Configuration & Setup
+
+**Setting up AI Integration:**
+1. Open the extension popup and expand the configuration section
+2. Enter your OpenAI API key (or compatible service key)
+3. Optionally configure:
+   - API Base URL (defaults to `https://api.openai.com`)
+   - AI Model (defaults to `gpt-4o-mini`)
+   - Default tone (funny, sarcastic, or mild)
+4. Save your settings
+
+**Using the Extension:**
+1. Navigate to any website with comments
+2. Click "Scan page for comments" in the extension popup
+3. The extension will highlight detected comments and show a "most problematic" one
+4. Click "Suggest reply" on any highlighted comment to generate an AI response
+5. Choose your preferred tone and language for the response
+6. Copy the generated reply or use it as inspiration
+
+**Site Management:**
+- Toggle the extension on/off for specific websites using the site controls in the popup
+- The extension remembers your preferences per site
 
 Security & privacy notes:
 - The extension stores the API key in `chrome.storage.local` on your machine. Do not commit or share your key.
@@ -35,8 +64,40 @@ Security & privacy notes:
 
 If you'd like, I can implement a small server-side proxy so the API key never resides on the client and to add usage controls — tell me if you want that.
 
-Notes / next steps:
-- Detection heuristics are intentionally simple. For better results, add site-specific selectors or use more advanced NLP heuristics.
-- If you want stricter privacy, we can add an explicit consent modal before sending page content off-device.
+### Current Capabilities
 
-This is a small demo to iterate from — tell me which next step you want me to implement.
+**Comment Detection:**
+- Supports generic comment selectors (role="comment", .comment classes, etc.)
+- Site-specific selectors for known platforms (derstandard.at implemented)
+- Shadow DOM traversal for modern web components
+- Configurable via `sites.json` for easy extension
+
+**AI Reply Generation:**
+- Multi-language support (9 languages with localized prompts)
+- Three tone options with language-appropriate translations
+- Response caching to minimize API usage
+- Contextual prompts that understand comment content
+
+**User Interface:**
+- Clean popup with collapsible configuration
+- Real-time feedback and status updates
+- Visual highlighting of detected comments
+- Easy-to-use reply generation buttons
+
+### Technical Details
+
+- **Manifest V3** compatible for modern browser requirements
+- **Service Worker** architecture for reliable background processing
+- **Shadow DOM** support for sites using web components
+- **Cross-site compatibility** with fallback selectors
+- **Local storage** for secure API key management
+- **Response caching** to optimize API usage and costs
+
+### Development Notes
+
+The extension uses simple but effective heuristics to identify potentially problematic comments:
+- Comments with inflammatory language get higher scores
+- Very short comments (likely low-effort) are prioritized
+- Extremely long comments are deprioritized to focus on quick responses
+
+Site-specific selectors can be easily added to `sites.json` to improve detection on new platforms.

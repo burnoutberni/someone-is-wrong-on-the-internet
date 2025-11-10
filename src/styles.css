@@ -24,10 +24,25 @@ body {
   color: white;
 }
 
+.header-content {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.header-icon {
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.1);
+  padding: 2px;
+}
+
 .header h1 {
   font-size: 18px;
   font-weight: 600;
   letter-spacing: -0.02em;
+  margin: 0;
 }
 
 /* Sections */

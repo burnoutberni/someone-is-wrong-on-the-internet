@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="128" height="128" viewBox="0 0 128 128" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background circle -->
+  <circle cx="64" cy="64" r="60" fill="#FF6B6B" stroke="#D63447" stroke-width="4"/>
+  
+  <!-- Computer monitor -->
+  <rect x="32" y="35" width="64" height="40" rx="4" fill="#2C3E50" stroke="#34495E" stroke-width="2"/>
+  <rect x="36" y="39" width="56" height="32" fill="#3498DB"/>
+  
+  <!-- Screen content lines (representing text/comments) -->
+  <rect x="40" y="43" width="20" height="2" fill="#FFFFFF" opacity="0.9"/>
+  <rect x="40" y="47" width="32" height="2" fill="#FFFFFF" opacity="0.9"/>
+  <rect x="40" y="51" width="24" height="2" fill="#FFFFFF" opacity="0.9"/>
+  <rect x="40" y="55" width="28" height="2" fill="#FFFFFF" opacity="0.9"/>
+  <rect x="40" y="59" width="16" height="2" fill="#FFFFFF" opacity="0.9"/>
+  
+  <!-- Monitor stand -->
+  <rect x="60" y="75" width="8" height="8" fill="#2C3E50"/>
+  <rect x="52" y="83" width="24" height="4" rx="2" fill="#2C3E50"/>
+  
+  <!-- Speech bubble with exclamation -->
+  <ellipse cx="85" cy="25" rx="18" ry="12" fill="#FFFFFF" stroke="#BDC3C7" stroke-width="2"/>
+  <polygon points="75,32 70,40 80,35" fill="#FFFFFF" stroke="#BDC3C7" stroke-width="2" stroke-linejoin="round"/>
+  
+  <!-- Exclamation mark in bubble -->
+  <rect x="83" y="18" width="4" height="10" fill="#E74C3C" rx="2"/>
+  <circle cx="85" cy="32" r="2" fill="#E74C3C"/>
+  
+  <!-- Small "wrong" indicator - X mark -->
+  <g transform="translate(100,45) scale(0.8)">
+    <circle cx="0" cy="0" r="8" fill="#E74C3C"/>
+    <path d="M-4,-4 L4,4 M4,-4 L-4,4" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round"/>
+  </g>
+  
+  <!-- Subtle keyboard suggestion -->
+  <rect x="28" y="92" width="72" height="16" rx="3" fill="#95A5A6" stroke="#7F8C8D" stroke-width="1"/>
+  <rect x="32" y="96" width="8" height="8" rx="1" fill="#FFFFFF" opacity="0.8"/>
+  <rect x="44" y="96" width="8" height="8" rx="1" fill="#FFFFFF" opacity="0.8"/>
+  <rect x="56" y="96" width="16" height="8" rx="1" fill="#FFFFFF" opacity="0.8"/>
+  <rect x="76" y="96" width="8" height="8" rx="1" fill="#FFFFFF" opacity="0.8"/>
+  <rect x="88" y="96" width="8" height="8" rx="1" fill="#FFFFFF" opacity="0.8"/>
+</svg>
