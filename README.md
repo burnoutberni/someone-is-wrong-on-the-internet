@@ -4,7 +4,7 @@ A browser extension that automatically scans web pages for comment sections, ide
 
 ### Features
 
-- **Smart Comment Detection**: Automatically finds comment sections on web pages using both generic and site-specific selectors
+- **Site-Specific Support**: Only works on explicitly supported sites defined in `sites.json` for better accuracy
 - **Shadow DOM Support**: Works with modern sites that use shadow DOM (like derstandard.at)
 - **AI-Powered Replies**: Generates contextual, witty responses using OpenAI-compatible APIs
 - **Multi-language Support**: Supports English, Chinese, Hindi, Spanish, French, German, Arabic, Japanese, Russian, Italian and Swedish
@@ -47,12 +47,25 @@ Notes about Firefox and Manifest V3: Firefox has partial support for MV3 feature
 4. Save your settings
 
 **Using the Extension:**
-1. Navigate to any website with comments
+1. Navigate to a supported website (see `sites.json` for the list)
 2. Click "Scan page for comments" in the extension popup
-3. The extension will highlight detected comments and show a "most problematic" one
+3. If the site is supported, the extension will highlight detected comments 
 4. Click "Suggest reply" on any highlighted comment to generate an AI response
 5. Choose your preferred tone and language for the response
 6. Copy the generated reply or use it as inspiration
+
+**Supported Sites:**
+The extension currently works on:
+- derstandard.at (Austrian news site)
+
+Implemented, but untested:
+- reddit.com (social news aggregation)
+- news.ycombinator.com (Hacker News)
+- youtube.com (video comments)
+- twitter.com / x.com (social media)
+- disqus.com (comment system)
+
+To add support for new sites, edit `src/sites.json` with the appropriate CSS selectors.
 
 **Site Management:**
 - Toggle the extension on/off for specific websites using the site controls in the popup
@@ -67,10 +80,10 @@ If you'd like, I can implement a small server-side proxy so the API key never re
 ### Current Capabilities
 
 **Comment Detection:**
-- Supports generic comment selectors (role="comment", .comment classes, etc.)
-- Site-specific selectors for known platforms (derstandard.at implemented)
-- Shadow DOM traversal for modern web components
-- Configurable via `sites.json` for easy extension
+- **Site-specific only**: Works exclusively on sites defined in `sites.json`
+- Site-specific selectors for maximum accuracy and reliability
+- Shadow DOM traversal for modern web components (derstandard.at)
+- Easy to extend by adding new sites to `sites.json`
 
 **AI Reply Generation:**
 - Multi-language support (9 languages with localized prompts)
@@ -89,7 +102,7 @@ If you'd like, I can implement a small server-side proxy so the API key never re
 - **Manifest V3** compatible for modern browser requirements
 - **Service Worker** architecture for reliable background processing
 - **Shadow DOM** support for sites using web components
-- **Cross-site compatibility** with fallback selectors
+- **Targeted site support** with curated site list
 - **Local storage** for secure API key management
 - **Response caching** to optimize API usage and costs
 

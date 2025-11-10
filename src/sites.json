@@ -1,0 +1,30 @@
+{
+  "*.derstandard.at": [
+    ".posting--content"
+  ],
+  "*.reddit.com": [
+    "[data-testid='comment']",
+    ".Comment",
+    "[data-click-id='text']"
+  ],
+  "news.ycombinator.com": [
+    ".comment",
+    ".comtr"
+  ],
+  "*.youtube.com": [
+    "#content-text",
+    "yt-formatted-string#content-text"
+  ],
+  "disqus.com": [
+    ".post-content",
+    ".post-message"
+  ],
+  "*.twitter.com": [
+    "[data-testid='tweetText']",
+    ".tweet-text"
+  ],
+  "*.x.com": [
+    "[data-testid='tweetText']",
+    ".tweet-text"
+  ]
+}

@@ -31,5 +31,11 @@
       "js": ["src/content.js"],
       "run_at": "document_idle"
     }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["src/sites.json"],
+      "matches": ["<all_urls>"]
+    }
   ]
 }

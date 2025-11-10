@@ -1,35 +1,46 @@
 // Content script: scans the page for comment sections and highlights a "most stupid" comment.
 
-const COMMENT_SELECTORS = [
-  '[role="comment"]',
-  '[aria-label*="comment"]',
-  '.comment',
-  '.comments',
-  '.c-comments',
-  'section[id*="comment"]',
-  'article[id*="comment"]',
-  '.reply',
-  '.thread'
-];
+// Site-specific selectors will be loaded from sites.json
+let SITE_SELECTORS = {};
+let CURRENT_SITE_SUPPORTED = false;
 
-// Site-specific selectors for known comment platforms
-const SITE_SELECTORS = {
-  'derstandard.at': [
-    '.posting--content'
-  ]
-};
+// Load supported sites configuration
+async function loadSitesConfig() {
+  try {
+    const response = await fetch(chrome.runtime.getURL('src/sites.json'));
+    const sitesConfig = await response.json();
+    SITE_SELECTORS = sitesConfig;
+    
+    // Check if current site is supported
+    const hostname = window.location.hostname;
+    CURRENT_SITE_SUPPORTED = Object.keys(SITE_SELECTORS).some(pattern => {
+      // Convert glob pattern to regex (simple implementation for *.domain.com patterns)
+      const regex = new RegExp(pattern.replace('*', '.*').replace(/\./g, '\\.'));
+      return regex.test(hostname);
+    });
+    
+    console.log('SIWOTI: Site support check:', { hostname, supported: CURRENT_SITE_SUPPORTED });
+    return CURRENT_SITE_SUPPORTED;
+  } catch (error) {
+    console.error('SIWOTI: Failed to load sites config:', error);
+    CURRENT_SITE_SUPPORTED = false;
+    return false;
+  }
+}
 
 const STUPID_WORDS = ['lol', 'wtf', 'stupid', 'idiot', 'moron', 'dumb', 'nonsense'];
 
 // Get site-specific selectors for the current domain
 function getSiteSelectors() {
   const hostname = window.location.hostname;
-  for (const [domain, selectors] of Object.entries(SITE_SELECTORS)) {
-    if (hostname.includes(domain)) {
-      return [...(COMMENT_SELECTORS || []), ...selectors];
+  for (const [pattern, selectors] of Object.entries(SITE_SELECTORS)) {
+    // Convert glob pattern to regex (simple implementation for *.domain.com patterns)
+    const regex = new RegExp(pattern.replace('*', '.*').replace(/\./g, '\\.'));
+    if (regex.test(hostname)) {
+      return selectors;
     }
   }
-  return COMMENT_SELECTORS;
+  return []; // Return empty array if site is not supported
 }
 
 // Simple heuristic scoring: shorter comments and presence of insult words increase score.
@@ -587,6 +598,13 @@ function handleUserComment(commentText, tone) {
 }
 
 function scanAndHighlight(callback) {
+  // Check if current site is supported
+  if (!CURRENT_SITE_SUPPORTED) {
+    console.log('SIWOTI: Site not supported', { hostname: window.location.hostname });
+    if (callback) callback({ found: false, count: 0, unsupported: true });
+    return;
+  }
+
   // Check if extension is enabled (global always enabled; respect per-site disable list)
   chrome.storage.local.get(['siwoti_disabledSites'], (data) => {
     const globalEnabled = true;
@@ -624,9 +642,18 @@ function scanAndHighlight(callback) {
 // Listen for messages from popup / background
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   if (msg && msg.type === 'scan') {
-    scanAndHighlight((result) => {
-      sendResponse(result);
-    });
+    // Ensure sites config is loaded before scanning
+    if (!CURRENT_SITE_SUPPORTED && Object.keys(SITE_SELECTORS).length === 0) {
+      loadSitesConfig().then(() => {
+        scanAndHighlight((result) => {
+          sendResponse(result);
+        });
+      });
+    } else {
+      scanAndHighlight((result) => {
+        sendResponse(result);
+      });
+    }
     return true; // indicate async response
   }
   if (msg && msg.type === 'generateReplyFromSelection') {
@@ -639,11 +666,18 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 // Expose a window-level default tone for the page (can be set from popup)
 window.__SIWOTI_TONE = window.__SIWOTI_TONE || 'funny';
 
-// Auto-scan once on page load as part of PoC
-try {
-  setTimeout(() => {
-    scanAndHighlight();
-  }, 1200);
-} catch (e) {
-  // ignore
-}
+// Initialize and auto-scan once on page load
+(async function init() {
+  try {
+    await loadSitesConfig();
+    if (CURRENT_SITE_SUPPORTED) {
+      setTimeout(() => {
+        scanAndHighlight();
+      }, 1200);
+    } else {
+      console.log('SIWOTI: Site not supported, skipping auto-scan');
+    }
+  } catch (e) {
+    console.error('SIWOTI: Initialization failed:', e);
+  }
+})();

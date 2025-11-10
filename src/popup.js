@@ -219,7 +219,11 @@ document.addEventListener('DOMContentLoaded', async () => {
           console.warn(chrome.runtime.lastError.message);
           return;
         }
-        if (response && response.found) {
+        if (response && response.unsupported) {
+          showStatus('⚠️ This site is not supported. Only sites in sites.json are supported.', 4000);
+        } else if (response && response.disabled) {
+          showStatus('⚠️ Extension is disabled for this site', 3000);
+        } else if (response && response.found) {
           const count = response.count || 0;
           showStatus(`✓ Found ${count} comment${count !== 1 ? 's' : ''}! Click "Suggest" buttons on page`, 4000);
         } else {
