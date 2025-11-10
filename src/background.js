@@ -129,19 +129,118 @@ function detectLanguage(text) {
   return detectedLang;
 }
 
-chrome.runtime.onInstalled.addListener(() => {
-  console.log('SIWOTI extension installed (PoC)');
-  // Register context menu for right-click on any element
-  chrome.contextMenus.create({
-    id: 'siwoti-generate-reply',
-    title: 'Generate gotcha reply',
-    contexts: ['selection', 'page']
+// Load supported sites configuration
+let SUPPORTED_SITES = {};
+
+async function loadSitesConfig() {
+  try {
+    const response = await fetch(chrome.runtime.getURL('src/sites.json'));
+    SUPPORTED_SITES = await response.json();
+    console.log('SIWOTI: Loaded sites config:', Object.keys(SUPPORTED_SITES));
+  } catch (error) {
+    console.error('SIWOTI: Failed to load sites config:', error);
+    SUPPORTED_SITES = {};
+  }
+}
+
+// Check if a hostname is supported
+async function isSiteSupported(hostname) {
+  // Ensure sites config is loaded
+  if (Object.keys(SUPPORTED_SITES).length === 0) {
+    await loadSitesConfig();
+  }
+  
+  return Object.keys(SUPPORTED_SITES).some(pattern => {
+    // Convert glob pattern to regex (simple implementation for *.domain.com patterns)
+    const regex = new RegExp(pattern.replace('*', '.*').replace(/\./g, '\\.'));
+    return regex.test(hostname);
   });
+}
+
+// Update context menu based on current tab
+async function updateContextMenu(tabId) {
+  try {
+    const tab = await chrome.tabs.get(tabId);
+    if (!tab.url) return;
+    
+    const url = new URL(tab.url);
+    const hostname = url.hostname;
+    const supported = await isSiteSupported(hostname);
+    
+    // Remove existing menu item
+    chrome.contextMenus.removeAll(() => {
+      // Add menu item only for supported sites
+      if (supported) {
+        chrome.contextMenus.create({
+          id: 'siwoti-generate-reply',
+          title: 'Generate gotcha reply',
+          contexts: ['selection', 'page']
+        });
+        console.log('SIWOTI: Context menu enabled for', hostname);
+      } else {
+        console.log('SIWOTI: Context menu disabled for unsupported site', hostname);
+      }
+    });
+  } catch (error) {
+    console.error('SIWOTI: Failed to update context menu:', error);
+  }
+}
+
+chrome.runtime.onInstalled.addListener(async () => {
+  console.log('SIWOTI extension installed (PoC)');
+  await loadSitesConfig();
+  
+  // Get current active tab and update menu
+  try {
+    const [activeTab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    if (activeTab && activeTab.id) {
+      updateContextMenu(activeTab.id);
+    }
+  } catch (error) {
+    console.log('SIWOTI: No active tab on install');
+  }
+});
+
+// Handle extension startup (when browser starts)
+chrome.runtime.onStartup.addListener(async () => {
+  console.log('SIWOTI extension starting up');
+  await loadSitesConfig();
+  
+  // Update context menu for current active tab
+  try {
+    const [activeTab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    if (activeTab && activeTab.id) {
+      updateContextMenu(activeTab.id);
+    }
+  } catch (error) {
+    console.log('SIWOTI: No active tab on startup');
+  }
+});
+
+// Listen for tab updates (URL changes)
+chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
+  // Only update when the URL changes and the tab is active
+  if (changeInfo.url && tab.active) {
+    await updateContextMenu(tabId);
+  }
+});
+
+// Listen for tab activation (switching between tabs)
+chrome.tabs.onActivated.addListener(async (activeInfo) => {
+  await updateContextMenu(activeInfo.tabId);
 });
 
 // Handle context menu clicks
-chrome.contextMenus.onClicked.addListener((info, tab) => {
-  if (info.menuItemId === 'siwoti-generate-reply' && tab.id) {
+chrome.contextMenus.onClicked.addListener(async (info, tab) => {
+  if (info.menuItemId === 'siwoti-generate-reply' && tab.id && tab.url) {
+    // Double-check site is supported before proceeding
+    const url = new URL(tab.url);
+    const hostname = url.hostname;
+    if (!(await isSiteSupported(hostname))) {
+      console.log('SIWOTI: Context menu clicked on unsupported site, ignoring');
+      return;
+    }
+
     const selectedText = info.selectionText || '';
     if (selectedText.trim().length === 0) {
       alert('Please select some text (a comment) first.');

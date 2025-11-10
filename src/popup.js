@@ -29,6 +29,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   
   // Get current tab hostname
   let currentHostname = '';
+  let siteSupported = false;
   try {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
     if (tab && tab.url) {
@@ -39,6 +40,23 @@ document.addEventListener('DOMContentLoaded', async () => {
   } catch (e) {
     console.error('Failed to get current tab:', e);
     currentSite.textContent = 'Unknown site';
+  }
+
+  // Check if current site is supported
+  try {
+    const response = await fetch(chrome.runtime.getURL('src/sites.json'));
+    const sitesConfig = await response.json();
+    
+    siteSupported = Object.keys(sitesConfig).some(pattern => {
+      // Convert glob pattern to regex (simple implementation for *.domain.com patterns)
+      const regex = new RegExp(pattern.replace('*', '.*').replace(/\./g, '\\.'));
+      return regex.test(currentHostname);
+    });
+    
+    console.log('Site support check:', { hostname: currentHostname, supported: siteSupported });
+  } catch (error) {
+    console.error('Failed to load sites config:', error);
+    siteSupported = false;
   }
 
   // Load settings
@@ -58,6 +76,20 @@ document.addEventListener('DOMContentLoaded', async () => {
     const disabledSites = data.siwoti_disabledSites || [];
     const siteEnabled = !disabledSites.includes(currentHostname);
     siteEnable.checked = siteEnabled;
+    
+    // Disable controls if site is not supported
+    if (!siteSupported) {
+      siteEnable.disabled = true;
+      siteEnable.checked = false;
+      scanBtn.disabled = true;
+      // Update the site display to show unsupported status
+      currentSite.textContent = `${currentHostname} (unsupported)`;
+      // Add disabled class to toggle item for styling
+      const toggleItem = siteEnable.closest('.toggle-item');
+      if (toggleItem) {
+        toggleItem.classList.add('toggle-disabled');
+      }
+    }
     
     // Check if user has API settings configured
     const hasApiSettings = !!(data && (data.siwoti_apiKey || data.siwoti_apiBase || data.siwoti_model));
@@ -141,6 +173,13 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Site enable toggle
   siteEnable.addEventListener('change', () => {
+    // Prevent action if site is not supported
+    if (!siteSupported) {
+      siteEnable.checked = false;
+      showStatus('⚠️ This site is not supported', 3000);
+      return;
+    }
+
     const enabled = siteEnable.checked;
     chrome.storage.local.get(['siwoti_disabledSites'], (data) => {
       let disabledSites = data.siwoti_disabledSites || [];
@@ -203,6 +242,12 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   scanBtn.addEventListener('click', async () => {
+    // Check if site is supported before scanning
+    if (!siteSupported) {
+      showStatus('⚠️ This site is not supported. Only sites in sites.json are supported.', 4000);
+      return;
+    }
+
     showStatus('🔍 Scanning...', 5000);
     
     try {

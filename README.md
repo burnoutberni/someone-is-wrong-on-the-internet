@@ -5,6 +5,7 @@ A browser extension that automatically scans web pages for comment sections, ide
 ### Features
 
 - **Site-Specific Support**: Only works on explicitly supported sites defined in `sites.json` for better accuracy
+- **Dynamic Context Menu**: Right-click menu appears only on supported sites
 - **Shadow DOM Support**: Works with modern sites that use shadow DOM (like derstandard.at)
 - **AI-Powered Replies**: Generates contextual, witty responses using OpenAI-compatible APIs
 - **Multi-language Support**: Supports English, Chinese, Hindi, Spanish, French, German, Arabic, Japanese, Russian, Italian and Swedish
@@ -50,7 +51,9 @@ Notes about Firefox and Manifest V3: Firefox has partial support for MV3 feature
 1. Navigate to a supported website (see `sites.json` for the list)
 2. Click "Scan page for comments" in the extension popup
 3. If the site is supported, the extension will highlight detected comments 
-4. Click "Suggest reply" on any highlighted comment to generate an AI response
+4. Generate replies in two ways:
+   - Click "Suggest reply" on any highlighted comment, or
+   - Right-click on any text and select "Generate gotcha reply" (only available on supported sites)
 5. Choose your preferred tone and language for the response
 6. Copy the generated reply or use it as inspiration
 
