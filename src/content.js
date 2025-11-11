@@ -30,6 +30,98 @@ async function loadSitesConfig() {
 
 const STUPID_WORDS = ['lol', 'wtf', 'stupid', 'idiot', 'moron', 'dumb', 'nonsense'];
 
+// Extract article context for better AI replies
+function getArticleContext() {
+  const hostname = window.location.hostname;
+  let articleText = '';
+  let articleTitle = '';
+  
+  console.log('🎯 SIWOTI: Extracting article context for', hostname);
+  
+  // Site-specific article extraction
+  if (hostname.includes('derstandard.at')) {
+    // Extract article content
+    const articleElement = document.querySelector('article.story-article');
+    console.log('🎯 SIWOTI: Found article element:', !!articleElement);
+    
+    if (articleElement) {
+      // Get title from h1 or .headline
+      const titleElement = articleElement.querySelector('h1, .headline, [class*="headline"]');
+      if (titleElement) {
+        articleTitle = titleElement.textContent?.trim() || '';
+        console.log('🎯 SIWOTI: Extracted title:', articleTitle.substring(0, 100) + '...');
+      }
+      
+      // Get article text from paragraphs, excluding ads and other non-content
+      const paragraphs = articleElement.querySelectorAll('p');
+      const textParts = [];
+      for (const p of paragraphs) {
+        const text = p.textContent?.trim();
+        if (text && text.length > 20 && !text.includes('Anzeige') && !text.includes('Werbung')) {
+          textParts.push(text);
+        }
+      }
+      articleText = textParts.join('\n\n');
+      console.log('🎯 SIWOTI: Extracted article text length:', articleText.length);
+    }
+  } else if (hostname.includes('reddit.com')) {
+    // Reddit: Extract post title and content
+    const titleElement = document.querySelector('[data-testid="post-content"] h1, .Post h1, [slot="title"]');
+    if (titleElement) {
+      articleTitle = titleElement.textContent?.trim() || '';
+    }
+    
+    // Get post text content
+    const postContent = document.querySelector('[data-testid="post-content"] [data-click-id="text"], .Post .md');
+    if (postContent) {
+      articleText = postContent.textContent?.trim() || '';
+    }
+  } else if (hostname.includes('news.ycombinator.com')) {
+    // Hacker News: Get story title and any linked article info
+    const titleElement = document.querySelector('.storylink, .titleline > a');
+    if (titleElement) {
+      articleTitle = titleElement.textContent?.trim() || '';
+    }
+  } else if (hostname.includes('youtube.com')) {
+    // YouTube: Get video title and description
+    const titleElement = document.querySelector('#title h1, .ytd-video-primary-info-renderer h1');
+    if (titleElement) {
+      articleTitle = titleElement.textContent?.trim() || '';
+    }
+    
+    const descElement = document.querySelector('#description, .ytd-video-secondary-info-renderer #description');
+    if (descElement) {
+      articleText = descElement.textContent?.trim() || '';
+    }
+  }
+  
+  // Fallback: try to get page title if no article title found
+  if (!articleTitle) {
+    articleTitle = document.title || '';
+  }
+  
+  // Truncate article text to reasonable length (max 2000 chars)
+  if (articleText.length > 2000) {
+    articleText = articleText.substring(0, 2000) + '...';
+  }
+  
+  const context = {
+    title: articleTitle,
+    content: articleText,
+    url: window.location.href
+  };
+  
+  console.log('🎯 SIWOTI: Final article context:', {
+    hasTitle: !!context.title,
+    titleLength: context.title.length,
+    hasContent: !!context.content,
+    contentLength: context.content.length,
+    url: context.url
+  });
+  
+  return context;
+}
+
 // Get site-specific selectors for the current domain
 function getSiteSelectors() {
   const hostname = window.location.hostname;
@@ -355,14 +447,21 @@ function attachReplyButton(targetEl, commentText) {
   arrowBtn.disabled = true;
     
   const tone = currentTone;
+    const articleContext = getArticleContext();
     console.log('🎯 Requesting reply generation:', {
       fullComment: commentText,
       commentLength: commentText.length,
-      tone
+      tone,
+      articleContext
     });
     
     // request generation from background/service worker
-    chrome.runtime.sendMessage({ type: 'generateReply', comment: commentText, tone }, (response) => {
+    chrome.runtime.sendMessage({ 
+      type: 'generateReply', 
+      comment: commentText, 
+      tone, 
+      articleContext 
+    }, (response) => {
   btn.textContent = 'Suggest';
   btn.disabled = false;
   arrowBtn.disabled = false;
@@ -511,13 +610,20 @@ function handleUserComment(commentText, tone) {
     const selectedTone = tone || (data && data.siwoti_tone) || 'funny';
     
     // request reply from background
+    const articleContext = getArticleContext();
     console.log('🎯 Right-click: requesting reply generation:', {
       fullComment: commentText,
       commentLength: commentText.length,
-      tone: selectedTone
+      tone: selectedTone,
+      articleContext
     });
     
-    chrome.runtime.sendMessage({ type: 'generateReply', comment: commentText, tone: selectedTone }, (response) => {
+    chrome.runtime.sendMessage({ 
+      type: 'generateReply', 
+      comment: commentText, 
+      tone: selectedTone, 
+      articleContext 
+    }, (response) => {
     console.log('🎯 Right-click: received response:', response);
     
     const box = document.createElement('div');

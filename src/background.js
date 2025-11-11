@@ -19,67 +19,185 @@ const LANGUAGE_PROMPTS = {
   en: {
     tones: { funny: 'funny', sarcastic: 'sarcastic', mild: 'mild' },
     system: `You are a witty, concise assistant that writes short gotcha-style replies to internet comments. Keep replies between 10 and 60 words.`,
-    user: (tone, comment) => `Write a ${tone} reply to this comment:\n\n"""\n${comment}\n"""\n\nKeep it short, humorous, and not abusive.`
+    user: (tone, comment, articleContext) => {
+      let prompt = `Write a ${tone} reply to this comment:\n\n"""\n${comment}\n"""`;
+      prompt += `\nKeep it short, humorous, and not abusive.`;
+      if (articleContext && (articleContext.title || articleContext.content)) {
+        prompt += `\n\nContext - The comment is about this article:\nTitle: ${articleContext.title}\n`;
+        if (articleContext.content) {
+          prompt += `Article text: ${articleContext.content}\n`;
+        }
+      }
+      return prompt;
+    }
   },
   zh: {
     tones: { funny: '幽默', sarcastic: '讽刺', mild: '温和' },
     system: `你是一个机智、简洁的助手，专门为网络评论撰写简短的"反驳式"回复。回复应保持在10到60个字之间。`,
-    user: (tone, comment) => `为这条评论写一个${tone}的回复：\n\n"""\n${comment}\n"""\n\n保持简短、幽默，不要粗俗。`
+    user: (tone, comment, articleContext) => {
+      let prompt = `为这条评论写一个${tone}的回复：\n\n"""\n${comment}\n"""\n\n保持简短、幽默，不要粗俗。`;
+      if (articleContext && (articleContext.title || articleContext.content)) {
+        prompt += `\n\n背景 - 这条评论是关于这篇文章的：\n标题: ${articleContext.title}\n`;
+        if (articleContext.content) {
+          prompt += `文章内容: ${articleContext.content}\n`;
+        }
+      }
+      return prompt;
+    }
   },
   hi: {
     tones: { funny: 'मज़ेदार', sarcastic: 'व्यंग्यात्मक', mild: 'सौम्य' },
     system: `आप एक चतुर, संक्षिप्त सहायक हैं जो इंटरनेट टिप्पणियों के लिए छोटे गोचा-शैली के जवाब लिखते हैं। जवाब 10 से 60 शब्दों के बीच रखें।`,
-    user: (tone, comment) => `इस टिप्पणी का एक ${tone} जवाब लिखें:\n\n"""\n${comment}\n"""\n\nइसे छोटा, हास्यपूर्ण और अपमानजनक नहीं रखें।`
+    user: (tone, comment, articleContext) => {
+      let prompt = `इस टिप्पणी का एक ${tone} जवाब लिखें:\n\n"""\n${comment}\n"""\n\nइसे छोटा, हास्यपूर्ण और अपमानजनक नहीं रखें।`;
+      if (articleContext && (articleContext.title || articleContext.content)) {
+        prompt += `\n\nसंदर्भ - यह टिप्पणी इस लेख के बारे में है:\nशीर्षक: ${articleContext.title}\n`;
+        if (articleContext.content) {
+          prompt += `लेख की सामग्री: ${articleContext.content}\n`;
+        }
+      }
+      return prompt;
+    }
   },
   es: {
     tones: { funny: 'divertida', sarcastic: 'sarcástica', mild: 'suave' },
     system: `Eres un asistente ingenioso y conciso que escribe respuestas cortas y contundentes a comentarios de internet. Mantén las respuestas entre 10 y 60 palabras.`,
-    user: (tone, comment) => `Escribe una respuesta ${tone} a este comentario:\n\n"""\n${comment}\n"""\n\nMantenla corta, divertida y no abusiva.`
+    user: (tone, comment, articleContext) => {
+      let prompt = `Escribe una respuesta ${tone} a este comentario:\n\n"""\n${comment}\n"""\n\nMantenla corta, divertida y no abusiva.`;
+      if (articleContext && (articleContext.title || articleContext.content)) {
+        prompt += `\n\nContexto - El comentario es sobre este artículo:\nTítulo: ${articleContext.title}\n`;
+        if (articleContext.content) {
+          prompt += `Contenido del artículo: ${articleContext.content}\n`;
+        }
+      }
+      return prompt;
+    }
   },
   fr: {
     tones: { funny: 'drôle', sarcastic: 'sarcastique', mild: 'douce' },
     system: `Tu es un assistant spirituel et concis qui écrit de courtes réponses percutantes aux commentaires sur internet. Garde les réponses entre 10 et 60 mots.`,
-    user: (tone, comment) => `Écris une réponse ${tone} à ce commentaire:\n\n"""\n${comment}\n"""\n\nGarde-la courte, humoristique et non abusive.`
+    user: (tone, comment, articleContext) => {
+      let prompt = `Écris une réponse ${tone} à ce commentaire:\n\n"""\n${comment}\n"""\n\nGarde-la courte, humoristique et non abusive.`;
+      if (articleContext && (articleContext.title || articleContext.content)) {
+        prompt += `\n\nContexte - Le commentaire concerne cet article:\nTitre: ${articleContext.title}\n`;
+        if (articleContext.content) {
+          prompt += `Contenu de l'article: ${articleContext.content}\n`;
+        }
+      }
+      return prompt;
+    }
   },
   ar: {
     tones: { funny: 'مضحكًا', sarcastic: 'ساخرًا', mild: 'لطيفًا' },
     system: `أنت مساعد ذكي وموجز يكتب ردودًا قصيرة ومفحمة على تعليقات الإنترنت. حافظ على الردود بين 10 و 60 كلمة.`,
-    user: (tone, comment) => `اكتب ردًا ${tone} على هذا التعليق:\n\n"""\n${comment}\n"""\n\nاجعله قصيرًا وفكاهيًا وغير مسيء.`
+    user: (tone, comment, articleContext) => {
+      let prompt = `اكتب ردًا ${tone} على هذا التعليق:\n\n"""\n${comment}\n"""\n\nاجعله قصيرًا وفكاهيًا وغير مسيء.`;
+      if (articleContext && (articleContext.title || articleContext.content)) {
+        prompt += `\n\nالسياق - التعليق يتعلق بهذا المقال:\nالعنوان: ${articleContext.title}\n`;
+        if (articleContext.content) {
+          prompt += `محتوى المقال: ${articleContext.content}\n`;
+        }
+      }
+      return prompt;
+    }
   },
   bn: {
     tones: { funny: 'মজার', sarcastic: 'ব্যঙ্গাত্মক', mild: 'মৃদু' },
     system: `আপনি একজন বুদ্ধিমান, সংক্ষিপ্ত সহায়ক যিনি ইন্টারনেট মন্তব্যের জন্য ছোট গোচা-স্টাইল উত্তর লেখেন। উত্তরগুলি 10 থেকে 60 শব্দের মধ্যে রাখুন।`,
-    user: (tone, comment) => `এই মন্তব্যের জন্য একটি ${tone} উত্তর লিখুন:\n\n"""\n${comment}\n"""\n\nএটি সংক্ষিপ্ত, হাস্যকর এবং অপমানজনক নয় রাখুন।`
+    user: (tone, comment, articleContext) => {
+      let prompt = `এই মন্তব্যের জন্য একটি ${tone} উত্তর লিখুন:\n\n"""\n${comment}\n"""\n\nএটি সংক্ষিপ্ত, হাস্যকর এবং অপমানজনক নয় রাখুন।`;
+      if (articleContext && (articleContext.title || articleContext.content)) {
+        prompt += `\n\nপ্রেক্ষাপট - মন্তব্যটি এই নিবন্ধ সম্পর্কে:\nশিরোনাম: ${articleContext.title}\n`;
+        if (articleContext.content) {
+          prompt += `নিবন্ধের বিষয়বস্তু: ${articleContext.content}\n`;
+        }
+      }
+      return prompt;
+    }
   },
   pt: {
     tones: { funny: 'engraçada', sarcastic: 'sarcástica', mild: 'suave' },
     system: `Você é um assistente espirituoso e conciso que escreve respostas curtas e contundentes a comentários da internet. Mantenha as respostas entre 10 e 60 palavras.`,
-    user: (tone, comment) => `Escreva uma resposta ${tone} a este comentário:\n\n"""\n${comment}\n"""\n\nMantenha-a curta, bem-humorada e não abusiva.`
+    user: (tone, comment, articleContext) => {
+      let prompt = `Escreva uma resposta ${tone} a este comentário:\n\n"""\n${comment}\n"""\n\nMantenha-a curta, bem-humorada e não abusiva.`;
+      if (articleContext && (articleContext.title || articleContext.content)) {
+        prompt += `\n\nContexto - O comentário é sobre este artigo:\nTítulo: ${articleContext.title}\n`;
+        if (articleContext.content) {
+          prompt += `Conteúdo do artigo: ${articleContext.content}\n`;
+        }
+      }
+      return prompt;
+    }
   },
   ru: {
     tones: { funny: 'смешной', sarcastic: 'саркастичный', mild: 'мягкий' },
     system: `Вы остроумный и лаконичный помощник, который пишет короткие едкие ответы на интернет-комментарии. Держите ответы в пределах 10-60 слов.`,
-    user: (tone, comment) => `Напишите ${tone} ответ на этот комментарий:\n\n"""\n${comment}\n"""\n\nСделайте его коротким, юмористичным и не оскорбительным.`
+    user: (tone, comment, articleContext) => {
+      let prompt = `Напишите ${tone} ответ на этот комментарий:\n\n"""\n${comment}\n"""\n\nСделайте его коротким, юмористичным и не оскорбительным.`;
+      if (articleContext && (articleContext.title || articleContext.content)) {
+        prompt += `\n\nКонтекст - Комментарий касается этой статьи:\nЗаголовок: ${articleContext.title}\n`;
+        if (articleContext.content) {
+          prompt += `Содержание статьи: ${articleContext.content}\n`;
+        }
+      }
+      return prompt;
+    }
   },
   ja: {
     tones: { funny: '面白い', sarcastic: '皮肉な', mild: '穏やかな' },
     system: `あなたは機知に富んだ簡潔なアシスタントで、インターネットのコメントに対して短い切り返しスタイルの返信を書きます。返信は10〜60語に保ってください。`,
-    user: (tone, comment) => `このコメントに${tone}返信を書いてください：\n\n"""\n${comment}\n"""\n\n短く、ユーモラスで、攻撃的でないようにしてください。`
+    user: (tone, comment, articleContext) => {
+      let prompt = `このコメントに${tone}返信を書いてください：\n\n"""\n${comment}\n"""\n\n短く、ユーモラスで、攻撃的でないようにしてください。`;
+      if (articleContext && (articleContext.title || articleContext.content)) {
+        prompt += `\n\n文脈 - コメントはこの記事についてです:\nタイトル: ${articleContext.title}\n`;
+        if (articleContext.content) {
+          prompt += `記事の内容: ${articleContext.content}\n`;
+        }
+      }
+      return prompt;
+    }
   },
   de: {
     tones: { funny: 'lustige', sarcastic: 'sarkastische', mild: 'milde' },
-    system: `Du bist ein witziger, prägnanter Assistent, der kurze, schlagfertige Antworten auf Internetkommentare schreibt. Halte die Antworten zwischen 10 und 60 Wörtern.`,
-    user: (tone, comment) => `Schreibe eine ${tone} Antwort auf diesen Kommentar:\n\n"""\n${comment}\n"""\n\nHalte sie kurz, humorvoll und nicht beleidigend.`
+    system: `Du bist ein witziger, prägnanter Assistent, der kurze, schlagfertige Antworten auf Internetkommentare schreibt. Halte Antworten zwischen 10 und 60 Wörtern.`,
+    user: (tone, comment, articleContext) => {
+      let prompt = `Schreibe eine ${tone} Antwort auf diesen Kommentar:\n\n"""\n${comment}\n"""\n\nHalte sie kurz, humorvoll und nicht beleidigend.`;
+      if (articleContext && (articleContext.title || articleContext.content)) {
+        prompt += `\n\nKontext - Der Kommentar bezieht sich auf diesen Artikel:\nTitel: ${articleContext.title}\n`;
+        if (articleContext.content) {
+          prompt += `Artikel-Inhalt: ${articleContext.content}\n`;
+        }
+      }
+      return prompt;
+    }
   },
   it: {
     tones: { funny: 'divertente', sarcastic: 'sarcastica', mild: 'gentile' },
     system: `Sei un assistente arguto e conciso che scrive risposte brevi e incisive ai commenti su internet. Mantieni le risposte tra 10 e 60 parole.`,
-    user: (tone, comment) => `Scrivi una risposta ${tone} a questo commento:\n\n"""\n${comment}\n"""\n\nMantienila breve, divertente e non offensiva.`
+    user: (tone, comment, articleContext) => {
+      let prompt = `Scrivi una risposta ${tone} a questo commento:\n\n"""\n${comment}\n"""\n\nMantienila breve, divertente e non offensiva.`;
+      if (articleContext && (articleContext.title || articleContext.content)) {
+        prompt += `\n\nContesto - Il commento riguarda questo articolo:\nTitolo: ${articleContext.title}\n`;
+        if (articleContext.content) {
+          prompt += `Contenuto dell'articolo: ${articleContext.content}\n`;
+        }
+      }
+      return prompt;
+    }
   },
   sv: {
     tones: { funny: 'roligt', sarcastic: 'sarkastiskt', mild: 'milt' },
     system: `Du är en kvick, koncis assistent som skriver korta, slagfärdiga svar på internetkommentarer. Håll svaren mellan 10 och 60 ord.`,
-    user: (tone, comment) => `Skriv ett ${tone} svar på denna kommentar:\n\n"""\n${comment}\n"""\n\nHåll det kort, humoristiskt och inte kränkande.`
+    user: (tone, comment, articleContext) => {
+      let prompt = `Skriv ett ${tone} svar på denna kommentar:\n\n"""\n${comment}\n"""\n\nHåll det kort, humoristiskt och inte kränkande.`;
+      if (articleContext && (articleContext.title || articleContext.content)) {
+        prompt += `\n\nKontext - Kommentaren handlar om den här artikeln:\nTitel: ${articleContext.title}\n`;
+        if (articleContext.content) {
+          prompt += `Artikelinnehåll: ${articleContext.content}\n`;
+        }
+      }
+      return prompt;
+    }
   }
 };
 
@@ -261,7 +379,7 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
 
 
 // Call OpenAI-compatible or Ollama API from the background service worker.
-async function callOpenAI(commentText, tone) {
+async function callOpenAI(commentText, tone, articleContext = null) {
   return new Promise((resolve, reject) => {
     chrome.storage.local.get(['siwoti_apiKey', 'siwoti_apiBase', 'siwoti_model'], async (data) => {
       console.log('💾 Raw storage data:', {
@@ -307,9 +425,19 @@ async function callOpenAI(commentText, tone) {
       
       console.log('🌍 Detected language:', detectedLang);
       console.log('🎭 Tone:', tone, '→', translatedTone);
+      console.log('📰 Article context:', articleContext ? {
+        hasTitle: !!articleContext.title,
+        titleLength: articleContext.title?.length || 0,
+        hasContent: !!articleContext.content,
+        contentLength: articleContext.content?.length || 0,
+        url: articleContext.url
+      } : 'None');
       
       const system = langPrompts.system;
-      const prompt = langPrompts.user(translatedTone, commentText);
+      const prompt = langPrompts.user(translatedTone, commentText, articleContext);
+      
+      console.log('💬 Generated prompt preview:');
+      console.log(prompt.substring(0, 500) + (prompt.length > 500 ? '...' : ''));
 
       // Choose model: user-specified, or defaults (gpt-3.5-turbo for OpenAI, llama3.2 for Ollama)
       const model = customModel || (isOllama || isOpenWebUI ? 'llama3.2' : 'gpt-3.5-turbo');
@@ -399,12 +527,14 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   if (msg.type === 'generateReply') {
     const tone = msg.tone || 'funny';
     const comment = msg.comment || '';
+    const articleContext = msg.articleContext || null;
     
     // Detect language for cache key
     const detectedLang = detectLanguage(comment);
     
-    // Check cache first (including language in cache key)
-    const cacheKey = hashKey(comment, tone, detectedLang);
+    // Include article context in cache key if present
+    const contextKey = articleContext ? `${articleContext.title}|${articleContext.url}` : '';
+    const cacheKey = hashKey(comment + contextKey, tone, detectedLang);
     if (replyCache.has(cacheKey)) {
       console.log('Returning cached reply for:', comment.slice(0, 50), '(lang:', detectedLang + ')');
       sendResponse({ reply: replyCache.get(cacheKey), cached: true });
@@ -412,7 +542,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     }
     
     // Always call OpenAI (no fallback placeholder)
-    callOpenAI(comment, tone).then((reply) => {
+    callOpenAI(comment, tone, articleContext).then((reply) => {
       // cache the response
       replyCache.set(cacheKey, reply);
       sendResponse({ reply });
