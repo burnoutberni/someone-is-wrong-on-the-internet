@@ -460,12 +460,22 @@ function attachReplyButton(targetEl, commentText) {
   btn.addEventListener('click', (e) => {
     e.stopPropagation();
     e.preventDefault();
-    btn.textContent = '...';
-    btn.disabled = true;
-  arrowBtn.disabled = true;
     
-  const tone = currentTone;
+    if (btn.disabled) return;
+    
+    btn.disabled = true;
+    arrowBtn.disabled = true;
+    
+    const tone = currentTone;
     const articleContext = getArticleContext();
+    
+    // Show loading state
+    const loadingBox = showUnifiedReplyBox({
+      isLoading: true,
+      tone: tone,
+      anchorElement: overlay
+    });
+    
     console.log('🎯 Requesting reply generation:', {
       fullComment: commentText,
       commentLength: commentText.length,
@@ -480,19 +490,28 @@ function attachReplyButton(targetEl, commentText) {
       tone, 
       articleContext 
     }, (response) => {
-  btn.textContent = 'Suggest';
-  btn.disabled = false;
-  arrowBtn.disabled = false;
+      btn.disabled = false;
+      arrowBtn.disabled = false;
+      loadingBox.remove();
       
       console.log('🎯 Received response:', response);
       
       if (response && response.reply) {
         console.log('✅ Got reply:', response.reply.slice(0, 100) + (response.reply.length > 100 ? '...' : ''));
-        showSuggestedReplyFloating(targetEl, response.reply, overlay, response.cached);
+        showUnifiedReplyBox({
+          replyText: response.reply,
+          tone: tone,
+          isCached: response.cached,
+          anchorElement: overlay
+        });
       } else {
         const errMsg = response && response.error ? response.error : 'AI API call failed. Check your API key in the extension popup.';
         console.error('❌ Reply generation failed:', errMsg);
-        showSuggestedReplyFloating(targetEl, errMsg, overlay, false, true);
+        showUnifiedReplyBox({
+          replyText: errMsg,
+          isError: true,
+          anchorElement: overlay
+        });
       }
     });
   });
@@ -548,66 +567,168 @@ function clearFloatingForElement(targetEl) {
   window.__SIWOTI_OVERLAYS = (window.__SIWOTI_OVERLAYS || []).filter(n => document.body.contains(n));
 }
 
-function showSuggestedReplyFloating(targetEl, replyText, anchorOverlay, isCached, isError) {
-  // remove existing floating boxes
+// Unified loading and reply display system
+function showUnifiedReplyBox(options = {}) {
+  const {
+    replyText = '',
+    tone = '',
+    isLoading = false,
+    isError = false,
+    isCached = false,
+    anchorElement = null, // If provided, positions relative to this element
+    centered = false // If true, centers on screen (for right-click)
+  } = options;
+
+  // Remove existing reply boxes
   (window.__SIWOTI_OVERLAYS || []).forEach(n => {
     if (n && n.classList && n.classList.contains('siwoti-reply-box-floating')) n.remove();
   });
 
-  const rect = targetEl.getBoundingClientRect();
   const box = document.createElement('div');
   box.className = 'siwoti-reply-box-floating';
-  box.style.position = 'absolute';
+  box.style.position = centered ? 'fixed' : 'absolute';
   box.style.zIndex = 2147483647;
-  // prefer placing below the anchor overlay
-  const ax = anchorOverlay.getBoundingClientRect();
-  box.style.left = (window.scrollX + ax.left - 220) + 'px';
-  box.style.top = (window.scrollY + ax.bottom + 6) + 'px';
-  box.style.maxWidth = '360px';
-  box.style.padding = '8px 10px';
-  box.style.background = isError ? '#fff3f3' : 'white';
-  box.style.border = isError ? '1px solid rgba(255,0,0,0.2)' : '1px solid rgba(0,0,0,0.12)';
+  box.style.maxWidth = '400px';
+  box.style.padding = '12px 14px';
   box.style.borderRadius = '8px';
-  box.style.boxShadow = '0 6px 18px rgba(0,0,0,0.12)';
+  box.style.boxShadow = '0 6px 18px rgba(0,0,0,0.2)';
   box.style.fontSize = '13px';
-  box.style.color = isError ? '#d00' : '#111';
   box.style.fontFamily = "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif";
-
-  // add cached badge if applicable
-  if (isCached && !isError) {
-    const badge = document.createElement('span');
-    badge.textContent = 'cached';
-    badge.style.fontSize = '10px';
-    badge.style.background = '#e0e0e0';
-    badge.style.padding = '2px 6px';
-    badge.style.borderRadius = '3px';
-    badge.style.marginBottom = '6px';
-    badge.style.display = 'inline-block';
-    box.appendChild(badge);
+  
+  // Position the box
+  if (centered) {
+    // Center on screen (right-click style)
+    box.style.left = '50%';
+    box.style.top = '50%';
+    box.style.transform = 'translate(-50%, -50%)';
+  } else if (anchorElement) {
+    // Position relative to anchor element (suggest button style)
+    const ax = anchorElement.getBoundingClientRect();
+    box.style.left = (window.scrollX + ax.left - 220) + 'px';
+    box.style.top = (window.scrollY + ax.bottom + 6) + 'px';
   }
 
-  // add text
-  const p = document.createElement('div');
-  p.textContent = replyText;
-  p.style.marginTop = isCached ? '6px' : '0';
-  box.appendChild(p);
+  // Set appearance based on state
+  if (isLoading) {
+    box.style.background = '#f8f9fa';
+    box.style.border = '1px solid rgba(0,0,0,0.12)';
+    box.style.color = '#666';
+  } else if (isError) {
+    box.style.background = '#fff3f3';
+    box.style.border = '1px solid rgba(255,0,0,0.2)';
+    box.style.color = '#d00';
+  } else {
+    box.style.background = 'white';
+    box.style.border = '1px solid rgba(0,0,0,0.12)';
+    box.style.color = '#111';
+  }
 
-  // add a tiny close button
-  const close = document.createElement('button');
-  close.textContent = '×';
-  close.title = 'Close';
-  close.style.position = 'absolute';
-  close.style.right = '6px';
-  close.style.top = '4px';
-  close.style.border = 'none';
-  close.style.background = 'transparent';
-  close.style.cursor = 'pointer';
-  close.style.fontSize = '14px';
-  close.addEventListener('click', (e) => { e.stopPropagation(); e.preventDefault(); box.remove(); });
-  box.appendChild(close);
+  // Create content
+  if (isLoading) {
+    // Loading state
+    const title = document.createElement('div');
+    title.style.fontWeight = 'bold';
+    title.style.marginBottom = '8px';
+    title.style.fontSize = '13px';
+    title.textContent = 'Generating reply...';
+    box.appendChild(title);
+
+    const loading = document.createElement('div');
+    loading.style.display = 'flex';
+    loading.style.alignItems = 'center';
+    loading.style.gap = '8px';
+    loading.innerHTML = '<div style="width: 16px; height: 16px; border: 2px solid #ddd; border-top: 2px solid #0b5cff; border-radius: 50%; animation: spin 1s linear infinite;"></div>Processing...';
+    box.appendChild(loading);
+
+    // Add CSS animation for spinner
+    if (!document.getElementById('siwoti-spinner-style')) {
+      const style = document.createElement('style');
+      style.id = 'siwoti-spinner-style';
+      style.textContent = '@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }';
+      document.head.appendChild(style);
+    }
+  } else {
+    // Result state (success or error)
+    const title = document.createElement('div');
+    title.style.fontWeight = 'bold';
+    title.style.marginBottom = '8px';
+    title.style.fontSize = '13px';
+    title.textContent = isError ? 'Error' : ('Suggested reply' + (tone ? ` (${tone})` : '') + (isCached ? ' [cached]' : ''));
+    box.appendChild(title);
+
+    // Reply text or error message
+    const content = document.createElement('div');
+    content.textContent = replyText;
+    content.style.marginBottom = '10px';
+    content.style.lineHeight = '1.4';
+    box.appendChild(content);
+
+    // Buttons
+    if (!isError) {
+      const btnRow = document.createElement('div');
+      btnRow.style.display = 'flex';
+      btnRow.style.gap = '8px';
+
+      const copyBtn = document.createElement('button');
+      copyBtn.textContent = 'Copy';
+      copyBtn.style.padding = '6px 12px';
+      copyBtn.style.fontSize = '12px';
+      copyBtn.style.cursor = 'pointer';
+      copyBtn.style.borderRadius = '4px';
+      copyBtn.style.background = '#0b5cff';
+      copyBtn.style.color = 'white';
+      copyBtn.style.border = 'none';
+      copyBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        navigator.clipboard.writeText(replyText).then(() => {
+          copyBtn.textContent = 'Copied!';
+          setTimeout(() => { copyBtn.textContent = 'Copy'; }, 1500);
+        });
+      });
+      btnRow.appendChild(copyBtn);
+
+      const closeBtn = document.createElement('button');
+      closeBtn.textContent = 'Close';
+      closeBtn.style.padding = '6px 12px';
+      closeBtn.style.fontSize = '12px';
+      closeBtn.style.cursor = 'pointer';
+      closeBtn.style.borderRadius = '4px';
+      closeBtn.style.background = '#ccc';
+      closeBtn.style.border = 'none';
+      closeBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        box.remove();
+        window.__SIWOTI_OVERLAYS = window.__SIWOTI_OVERLAYS.filter(n => n !== box);
+      });
+      btnRow.appendChild(closeBtn);
+
+      box.appendChild(btnRow);
+    }
+  }
+
+  // Add close button for all states
+  const closeX = document.createElement('button');
+  closeX.textContent = '×';
+  closeX.title = 'Close';
+  closeX.style.position = 'absolute';
+  closeX.style.right = '6px';
+  closeX.style.top = '4px';
+  closeX.style.border = 'none';
+  closeX.style.background = 'transparent';
+  closeX.style.cursor = 'pointer';
+  closeX.style.fontSize = '14px';
+  closeX.addEventListener('click', (e) => { 
+    e.stopPropagation(); 
+    e.preventDefault(); 
+    box.remove(); 
+    window.__SIWOTI_OVERLAYS = window.__SIWOTI_OVERLAYS.filter(n => n !== box);
+  });
+  box.appendChild(closeX);
 
   document.body.appendChild(box);
   window.__SIWOTI_OVERLAYS.push(box);
+  
+  return box;
 }
 
 // Handle a user-provided comment text (from right-click context menu or manual selection)
@@ -615,19 +736,18 @@ function handleUserComment(commentText, tone) {
   if (!commentText || commentText.trim().length === 0) return;
   clearHighlights();
   
-  // create a temporary container for the reply
-  const tempContainer = document.createElement('div');
-  tempContainer.style.position = 'fixed';
-  tempContainer.style.left = '50%';
-  tempContainer.style.top = '50%';
-  tempContainer.style.transform = 'translate(-50%, -50%)';
-  tempContainer.style.zIndex = 2147483647;
-  
   // Get tone from storage if not provided
   chrome.storage.local.get(['siwoti_tone'], (data) => {
     const selectedTone = tone || (data && data.siwoti_tone) || 'funny';
     
-    // request reply from background
+    // Show loading state using unified system
+    const loadingBox = showUnifiedReplyBox({
+      isLoading: true,
+      tone: selectedTone,
+      centered: true
+    });
+    
+    // Request reply from background
     const articleContext = getArticleContext();
     console.log('🎯 Right-click: requesting reply generation:', {
       fullComment: commentText,
@@ -642,81 +762,24 @@ function handleUserComment(commentText, tone) {
       tone: selectedTone, 
       articleContext 
     }, (response) => {
-    console.log('🎯 Right-click: received response:', response);
-    
-    const box = document.createElement('div');
-    box.className = 'siwoti-reply-box-floating';
-    box.style.maxWidth = '400px';
-    box.style.padding = '12px 14px';
-    box.style.borderRadius = '8px';
-    box.style.boxShadow = '0 6px 18px rgba(0,0,0,0.2)';
-    box.style.fontSize = '13px';
-  box.style.fontFamily = "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif";
-    
-    const isError = !response || !response.reply;
-    box.style.background = isError ? '#fff3f3' : 'white';
-    box.style.border = isError ? '1px solid rgba(255,0,0,0.2)' : '1px solid rgba(0,0,0,0.12)';
-    box.style.color = isError ? '#d00' : '#111';
-    
-    // title
-    const title = document.createElement('div');
-    title.style.fontWeight = 'bold';
-    title.style.marginBottom = '8px';
-    title.style.fontSize = '13px';
-      title.textContent = isError ? 'Error' : ('Suggested reply (' + selectedTone + ')' + (response.cached ? ' [cached]' : ''));
-      box.appendChild(title);
+      console.log('🎯 Right-click: received response:', response);
       
-      // reply text or error
-      const p = document.createElement('div');
-      p.textContent = response && response.reply ? response.reply : (response && response.error ? response.error : 'AI API call failed. Check your API key.');
-      p.style.marginBottom = '10px';
-      p.style.lineHeight = '1.4';
-      box.appendChild(p);
+      // Remove loading box
+      loadingBox.remove();
       
-      // button row
-      const btnRow = document.createElement('div');
-      btnRow.style.display = 'flex';
-      btnRow.style.gap = '8px';
+      // Show result using unified system
+      const isError = !response || !response.reply;
+      const replyText = response && response.reply ? 
+        response.reply : 
+        (response && response.error ? response.error : 'AI API call failed. Check your API key.');
       
-      if (!isError) {
-        const copyBtn = document.createElement('button');
-        copyBtn.textContent = 'Copy';
-        copyBtn.style.padding = '6px 12px';
-        copyBtn.style.fontSize = '12px';
-        copyBtn.style.cursor = 'pointer';
-        copyBtn.style.borderRadius = '4px';
-        copyBtn.style.background = '#0b5cff';
-        copyBtn.style.color = 'white';
-        copyBtn.style.border = 'none';
-        copyBtn.addEventListener('click', (e) => {
-          e.stopPropagation();
-          navigator.clipboard.writeText(response.reply).then(() => {
-            copyBtn.textContent = 'Copied!';
-            setTimeout(() => { copyBtn.textContent = 'Copy'; }, 1500);
-          });
-        });
-        btnRow.appendChild(copyBtn);
-      }
-      
-      const closeBtn = document.createElement('button');
-      closeBtn.textContent = 'Close';
-      closeBtn.style.padding = '6px 12px';
-      closeBtn.style.fontSize = '12px';
-      closeBtn.style.cursor = 'pointer';
-      closeBtn.style.borderRadius = '4px';
-      closeBtn.style.background = '#ccc';
-      closeBtn.style.border = 'none';
-      closeBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        tempContainer.remove();
-        window.__SIWOTI_OVERLAYS = window.__SIWOTI_OVERLAYS.filter(n => n !== tempContainer);
+      showUnifiedReplyBox({
+        replyText: replyText,
+        tone: selectedTone,
+        isError: isError,
+        isCached: response && response.cached,
+        centered: true
       });
-      btnRow.appendChild(closeBtn);
-      
-      box.appendChild(btnRow);
-      tempContainer.appendChild(box);
-      document.body.appendChild(tempContainer);
-      window.__SIWOTI_OVERLAYS.push(tempContainer);
     });
   });
 }

@@ -285,15 +285,39 @@ async function updateContextMenu(tabId) {
     const hostname = url.hostname;
     const supported = await isSiteSupported(hostname);
     
-    // Remove existing menu item
+    // Remove existing menu items
     chrome.contextMenus.removeAll(() => {
-      // Add menu item only for supported sites
+      // Add menu items only for supported sites
       if (supported) {
+        // Create parent menu item
         chrome.contextMenus.create({
           id: 'siwoti-generate-reply',
-          title: 'Generate gotcha reply',
+          title: 'Generate a reply',
           contexts: ['selection', 'page']
         });
+        
+        // Create sub-menu items for each tone
+        chrome.contextMenus.create({
+          id: 'siwoti-reply-funny',
+          parentId: 'siwoti-generate-reply',
+          title: '🎭 Funny',
+          contexts: ['selection', 'page']
+        });
+        
+        chrome.contextMenus.create({
+          id: 'siwoti-reply-sarcastic',
+          parentId: 'siwoti-generate-reply',
+          title: '😏 Sarcastic',
+          contexts: ['selection', 'page']
+        });
+        
+        chrome.contextMenus.create({
+          id: 'siwoti-reply-mild',
+          parentId: 'siwoti-generate-reply',
+          title: '😌 Mild',
+          contexts: ['selection', 'page']
+        });
+        
         console.log('SIWOTI: Context menu enabled for', hostname);
       } else {
         console.log('SIWOTI: Context menu disabled for unsupported site', hostname);
@@ -350,7 +374,11 @@ chrome.tabs.onActivated.addListener(async (activeInfo) => {
 
 // Handle context menu clicks
 chrome.contextMenus.onClicked.addListener(async (info, tab) => {
-  if (info.menuItemId === 'siwoti-generate-reply' && tab.id && tab.url) {
+  // Check if it's one of our reply menu items
+  const replyMenuIds = ['siwoti-reply-funny', 'siwoti-reply-sarcastic', 'siwoti-reply-mild'];
+  const menuItemId = info.menuItemId;
+  
+  if (replyMenuIds.includes(menuItemId) && tab.id && tab.url) {
     // Double-check site is supported before proceeding
     const url = new URL(tab.url);
     const hostname = url.hostname;
@@ -364,11 +392,20 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
       alert('Please select some text (a comment) first.');
       return;
     }
+    
+    // Extract tone from menu item ID
+    let tone = 'funny'; // default
+    if (menuItemId === 'siwoti-reply-funny') tone = 'funny';
+    else if (menuItemId === 'siwoti-reply-sarcastic') tone = 'sarcastic';
+    else if (menuItemId === 'siwoti-reply-mild') tone = 'mild';
+    
+    console.log('SIWOTI: Generating reply with tone:', tone);
+    
     // send to content script to generate reply
     chrome.tabs.sendMessage(tab.id, {
       type: 'generateReplyFromSelection',
       comment: selectedText,
-      tone: 'funny' // default; can be extended to read from storage
+      tone: tone
     }, (response) => {
       if (chrome.runtime.lastError) {
         console.warn('Content script error:', chrome.runtime.lastError.message);
