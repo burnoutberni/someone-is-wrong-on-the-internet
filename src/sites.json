@@ -1,30 +1,61 @@
 {
-  "*.derstandard.at": [
-    ".posting--content"
-  ],
-  "*.reddit.com": [
-    "[data-testid='comment']",
-    ".Comment",
-    "[data-click-id='text']"
-  ],
-  "news.ycombinator.com": [
-    ".comment",
-    ".comtr"
-  ],
-  "*.youtube.com": [
-    "#content-text",
-    "yt-formatted-string#content-text"
-  ],
-  "disqus.com": [
-    ".post-content",
-    ".post-message"
-  ],
-  "*.twitter.com": [
-    "[data-testid='tweetText']",
-    ".tweet-text"
-  ],
-  "*.x.com": [
-    "[data-testid='tweetText']",
-    ".tweet-text"
-  ]
+  "*.derstandard.at": {
+    "comments": [
+      ".posting--content"
+    ],
+    "article": {
+      "container": "article.story-article",
+      "title": "h1, .headline, [class*='headline']",
+      "content": "p"
+    }
+  },
+  "*.reddit.com": {
+    "comments": [
+      "[data-testid='comment']",
+      ".Comment",
+      "[data-click-id='text']"
+    ],
+    "article": {
+      "container": "[data-testid='post-content']",
+      "title": "h1, [slot='title']",
+      "content": "[data-click-id='text'], .md"
+    }
+  },
+  "news.ycombinator.com": {
+    "comments": [
+      ".comment",
+      ".comtr"
+    ],
+    "article": {
+      "title": ".storylink, .titleline > a"
+    }
+  },
+  "*.youtube.com": {
+    "comments": [
+      "#content-text",
+      "yt-formatted-string#content-text"
+    ],
+    "article": {
+      "title": "#title h1, .ytd-video-primary-info-renderer h1",
+      "content": "#description, .ytd-video-secondary-info-renderer #description"
+    }
+  },
+  "disqus.com": {
+    "comments": [
+      ".post-content",
+      ".post-message"
+    ]
+  },
+  "*.twitter.com": {
+    "comments": [
+      "[data-testid='tweetText']",
+      ".tweet-text"
+    ]
+  },
+  "*.x.com": {
+    "comments": [
+      "[data-testid='tweetText']",
+      ".tweet-text"
+    ]
+  }
 }
