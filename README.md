@@ -43,10 +43,10 @@ A browser extension that automatically scans web pages for comment sections and 
 
 **Currently working:**
 - derstandard.at (Austrian news site)
+- news.ycombinator.com (Hacker News)
 
 **Implemented but untested:**
 - reddit.com
-- news.ycombinator.com (Hacker News)
 - youtube.com
 - twitter.com / x.com
 - disqus.com

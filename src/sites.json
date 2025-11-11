@@ -23,11 +23,10 @@
   },
   "news.ycombinator.com": {
     "comments": [
-      ".comment",
-      ".comtr"
+      ".comment"
     ],
     "article": {
-      "title": ".storylink, .titleline > a"
+      "title": ".titleline > a"
     }
   },
   "*.youtube.com": {
